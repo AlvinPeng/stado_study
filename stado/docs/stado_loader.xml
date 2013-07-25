@@ -1,0 +1,994 @@
+<?xml version="1.0"?>
+<!--
+  Copyright (c) 2011, Stado Global Development Group
+-->
+
+<book id="stado_loader">
+ <title><productname>Stado</productname> Import and Export Utilities</title>
+
+ <chapter id="intro">
+  <title>Introduction</title>
+
+  <para>
+    Stado offers three different methods for importing and exporting 
+    data.
+  </para>
+
+  <para>
+    Stado supports PostgreSQL’s COPY command. This can be invoked from 
+    psql or cmdline. A description of it appears in the Stado 
+    <acronym>SQL</acronym> Reference Manual.
+  </para>
+
+  <para>
+    Another utility described in this document is gs-loader is available 
+    that adds additional features that COPY lacks, such as retries. 
+  </para>
+
+  <para>
+    The gs-impex utility is for both importing and exporting data to and 
+    from the database. It is not as fast as gs-loader when importing, so 
+    using gs-loader or COPY is recommended.
+  </para>
+
+  <sect1 id="perf">
+   <title>Performance Considerations</title>
+
+   <para>
+     In populating the database as fast as possible, there are some things 
+     to consider.
+
+    <itemizedlist>
+     <listitem>
+       After creating the tables, it is best to load data before creating 
+       any indexes or primary or foreign key constraints.  The entire process
+       will complete sooner.
+     </listitem>
+     <listitem>
+       Modifying the parameters of the underlying database. You may want to 
+       change the database configuration temporarily to speed up the loading 
+       or data. For example:
+       <itemizedlist>
+         <listitem>
+           Temporarily increasing the <literal>checkpoint_segments</literal> 
+           variable can also make large data loads faster. This is because 
+           loading a large amount of data into PosgtreSQL can cause checkpoints 
+           to occur more often than the normal checkpoint frequency (specified 
+           by the <literal>checkpoint_timeout</literal> configuration variable). 
+           Whenever a checkpoint occurs, all dirty pages must be flushed to disk.
+           By increasing <literal>checkpoint_segments</literal> temporarily 
+           during bulk data loads, the number of checkpoints that are required 
+           can be reduced.
+         </listitem>
+         <listitem>
+           Increase <literal>maintenance_work_mem</literal>. Temporarily increasing 
+           the <literal>maintenance_work_mem</literal> configuration variable 
+           when loading large amounts of data can lead to improved performance. 
+           This is because when a B-tree index is created from scratch, the existing
+           content of the table needs to be sorted. Allowing the merge sort to use 
+           more memory means that fewer merge passes will be required. A larger 
+           setting for <literal>maintenance_work_mem</literal> may also speed up 
+           validation of foreign-key constraints.
+         </listitem>
+         <listitem>
+           Fsync. Setting <literal>fsync</literal> in the 
+           <literal>postgresql.conf</literal> file to false is generally not a good 
+           idea since it does not guarantee writes to disk have occurred, but can be 
+           considered to disable temporarily when doing initial loading of the 
+           database. We recommend leaving it set to the default, true, but wanted 
+           to point out this option nonetheless.
+         </listitem>
+       </itemizedlist>
+     </listitem>
+    </itemizedlist>
+
+   </para>
+  </sect1>
+ </chapter>
+
+ <chapter id="gs-loader">
+  <title>gs-loader</title>
+
+  <para>
+    Syntax:
+  </para>
+  <programlisting>
+    <![CDATA[
+    gs-loader <connect> -t <table>  [-c <column_list>] [-i <inputfilename>]
+        [-f <delimiter>] [-z <NULL>]
+        [-v [-q <quote>] [-e <escape>] -n <column_list>
+        [-o] [-a] [-r <prefix>] [-w [<count>]] [-b <filename>]
+        [-k <commit_interval>[,<autoreducing_rate>[,<min_interval>]]
+                 -y <badchunkdir>[-x]]
+        where <connect> is –j 
+        jdbc:postgresql://<host>:<port>/<database>?user=<username>&password=<password>
+          or 
+        [-h <host>] [-s <port>] -d <database> -u <user> [-p <password>]
+
+        -h <host> : Host where XDBServer is running. Default is localhost
+        -s <port> : XDBServer's port. Default is 6453
+        -d <database> : Name of database to connect to.
+        -u <user>, -p <password> : Login to the database
+        -t <table> : target table name
+        -c <column_list> : comma or space separated list of columns
+        -i <inputfilename> : name of file with data to be loaded.
+                Standard input is used if omitted
+        -f <delimiter> : field delimiter. Default is \t (tab character)
+        -z <NULL> : value to indicate NULL. Default is \N
+        -v : CSV mode
+        -q <quote> : Quote character, default " (CSV mode only)
+        -e <escape> : Escape of character. Default is quote character (double)
+                 (CSV mode only)
+        -n <column_list>: Force not null. Values for this column are never
+                 treated as NULL, as if they was qouted
+        -a : remove trailing delimiter
+        -o : same as WITH OIDS
+        -r <prefix> : ignore data lines starting from specified prefix
+        -w [<count>] : verbose- every <count> lines (default 100000)
+                 display number of lines read
+        -l <line> : starting line number to load from input file
+        -m <max_errors> : abort after this number of errors
+        -b <filename> : file for reject lines or chunks
+        -k <commit_interval>[,<autoreducing_rate>[,<min_interval>]]:
+           <commit_interval> : number of lines to commit at a time
+           <autoreducing_rate> : if chunk failed, divide into this
+            number of chunks and retry
+           <min_interval> : do not further divide chunks of specified size
+        -x keep original format for failed chunks
+    ]]>
+  </programlisting>
+  <para>
+    The gs-loader utility acts as a front-end to the COPY command, and can 
+    connect to either Stado or PosgtreSQL. The primary benefit it adds is 
+    the retry functionality, so that data can be loaded even if some of the 
+    input lines are malformed.
+  </para>
+
+  <para>
+    Options:
+  </para>
+   <informaltable frame="all">
+      <tgroup cols="2">
+        <tbody>
+          <row>
+            <entry>
+               <para>-a</para>
+            </entry>
+            <entry>
+               <para>
+                 Added ending delimiter. By default, a field delimiter is 
+                 required only between the fields, not after the final field. 
+                 Including –a indicates that a trailing final delimiter is 
+                 present.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-b bad_file</para>
+            </entry>
+            <entry>
+               <para>
+                 File to write bad chunks to, if a commit interval is used. 
+                 There may be good lines that were not loaded because of using 
+                 a min_internal value greater than 1.
+                 One should use -r with this option, so that the reason for 
+                 the rejected line appears above it in the bad_file.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-c column_list</para>
+            </entry>
+            <entry>
+               <para>
+                 List of columns to load. This allows for specifying a subset 
+                 of columns in the table that correspond to the file being 
+                 loaded up.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-d database</para>
+            </entry>
+            <entry>
+               <para>
+                 The Stado database to connect to.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-e escape</para>
+            </entry>
+            <entry>
+               <para>
+                 Only used in conjunction with –v, indicates the quote 
+                 escape character.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-f separator</para>
+            </entry>
+            <entry>
+               <para>
+                 Separator. The field delimiter. Default is \\t (tab character)
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-g</para>
+            </entry>
+            <entry>
+               <para>
+                 Maximum number of errors.
+                 When loading a new table with a commit interval, it may be 
+                 useful to set a low number of maximum errors to abort the 
+                 process, fix issues, truncate the table, and restart the
+                 process.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-h host</para>
+            </entry>
+            <entry>
+               <para>
+                 Host to connect to
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-i inputfile</para>
+            </entry>
+            <entry>
+               <para>
+                 Input file to load from. If not specified, data is loaded 
+                 from stdin.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-j jdbcurl</para>
+            </entry>
+            <entry>
+               <para>
+                 The JDBC url to use to connect to the Stado Server
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-k chunk_interval</para>
+            </entry>
+            <entry>
+               <para>
+                 This instructs the loader to break up committing the bulk 
+                 load operations into “chunks”, every chunk_interval rows. 
+                 This is useful because normally if even a single insert 
+                 fails on the back end, the entire load will fail. Instead, 
+                 -k will still allow good segments of data to be committed, 
+                 and just flag bad ones that contain problematic input. The 
+                 bad chunks are created as new files at the path location 
+                 specified by –o. It is recommended to try and use a fairly 
+                 high chunk count if possible, like 100000, for performance 
+                 reasons when loading a lot of data.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-l</para>
+            </entry>
+            <entry>
+               <para>
+                 Starting line number to load from input file.
+                 This way, one could specify to start loading from line 2,
+                 for example. It can be useful if a commit interval together
+                 with a maximum number of errors has been used, then loading
+                 can be restarted with the same (fixed) file at the next line
+                 following what was committed.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-m</para>
+            </entry>
+            <entry>
+               <para>
+                 Maximum line number to read up until.
+                 This can be useful to do a sanity check on a large load file for a new table.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-o</para>
+            </entry>
+            <entry>
+               <para>
+                 Generate an internal unique row identifier (WITH OIDs).
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-p</para>
+            </entry>
+            <entry>
+               <para>
+                 The password to use when connecting. If not included, the 
+                 user will be prompted
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-q quote</para>
+            </entry>
+            <entry>
+               <para>
+                 Quote character
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-r string</para>
+            </entry>
+            <entry>
+               <para>
+                 Remark (comment) string. Lines that start with this will be 
+                 ignored. If used in conjunction with –b, all bad input lines 
+                 will be written out to the bad file, preceded by a comment 
+                 line starting with the string here, explaining the reason 
+                 for the rejection.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-s port</para>
+            </entry>
+            <entry>
+               <para>
+                 The socket port to connect to. By default it is 6453.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-t table</para>
+            </entry>
+            <entry>
+               <para>Target table</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-u username</para>
+            </entry>
+            <entry>
+               <para>The username to use when connecting</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-v</para>
+            </entry>
+            <entry>
+               <para>CSV mode. File is comma separated value file.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-w count</para>
+            </entry>
+            <entry>
+               <para>
+                 Write information (verbose). Displays how many rows have 
+                 been read every count lines, default 100000.
+                </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-x</para>
+            </entry>
+            <entry>
+               <para>
+                 Used in conjunction with –k and –o. Without –x, rejected 
+                 lines appear in a format friendly to the underlying 
+                 database. With –x, they appear in the original format.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>-z </para>
+            </entry>
+            <entry>
+               <para>Value to indicate null. Default is \\N.</para>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+
+  <sect1 id="bad_input">
+   <title>Handling Bad Input Line</title>
+
+   <para>
+     The loader contains additional options for handling input files that 
+     may cause errors when loading. This will allow you to try and continue 
+     loading as much data as possible, even if you encounter an error.
+    </para>
+
+   <para>
+     With –k, the input is broken out into the “chunk” row count specified. 
+     This allows smaller discrete segments of the input file to be committed 
+     if there are not any errors. Should an error occur on one of the 
+     backends, a new file will be created in the directory specified by –y. 
+     This allows the user to try and clean up any problems and reload the 
+     data, potentially in turn processing it in smaller and smaller chunks 
+     until the data is clean.
+   </para>
+
+   <para>
+     The bad chunk files are created in the format:
+   </para>
+   <para>
+     <programlisting>
+       <![CDATA[
+         <database>_<table>_<internalid>.tbl
+       ]]>
+     </programlisting>
+   </para>
+
+   <para>
+     There is one file per minimum sized chunk.
+   </para>
+
+   <para>
+     The –k option also allows you to specify an auto-reduce rate and minimum 
+     row amount, in addition to the chunk size, separated by commas, without 
+     any spaces. The advantage of this is if a chunk is bad, the loader will 
+     automatically break it out into “line count/auto-reduce rate” separate 
+     sub-chunks and to retry loading the rows and narrow down the particular 
+     problematic lines. This process is repeatedly recursively up until the 
+     minimum amount of specified rows.
+   </para>
+
+   <para>
+     The exact options to use with –k depend on how clean you think your data 
+     is. For performance, if few errors are expected, a large count number 
+     should be used.
+   </para>
+
+   <para>
+     Example: -k 100000,10,1.
+   </para>
+
+   <para>
+     This will result in a chunk size of 100,000 being used. If a chunk fails, 
+     that is broken out into 10 sub-chunks, resulting in chunks of 10,000 
+     lines being used. Those that fail will be broken out to 1,000, then 100, 
+     then 10, and finally 1.   The loader will have loaded up all of the lines 
+     that it could; the only remaining lines in the bad chunk files are the 
+     ones that it could not load up.
+   </para>
+
+  </sect1>
+
+  <sect1 id="example_usage">
+   <title>Example Usage</title>
+
+   <para>
+     <programlisting>
+       <![CDATA[
+         gs-loader.sh -d BIGDB –u myuser –p mypassword –h localhost 
+                      -i /home/extendb/mig/order_fact.tbl -t orders -f '|'
+                      -k 100000,20,1 –y /home/extendb/mig/bad       
+        ]]>
+     </programlisting>
+   </para>
+  </sect1>
+ </chapter>
+
+ <chapter id="gs-impex">
+  <title>gs-impex</title>
+
+  <para>
+    Like gs-loader, gs-impex can also be used to import data. It offers a 
+    little more flexibility at the cost of much slower load speeds. Therefore, 
+    it is recommended to use gs-loader for loading data.
+  </para>
+
+  <para>
+    On the other hand, gs-impex includes the ability to export data from 
+    arbitrary data sources.
+  </para>
+
+  <para>
+    There are 2 operating modes, import and export, the modes of which are 
+    mutually exclusive. Import is invoked with the “-i” and export with –x, 
+    where in either case it is followed by the source or target file.
+  </para>
+
+  <para>
+    An optional format file may be used with the “-f” option to allow more 
+    complex mapping information to appear. If the import is relatively simple, 
+    the user can also just enter the desired options on the command line. 
+  </para>
+
+  <sect1 id="file_format">
+   <title>Format File and Command Line options</title>
+
+   <sect2 id="importing">
+     <title>Importing</title>
+
+     <para>
+       <programlisting>
+         <![CDATA[
+           [INFILE=file_name]
+           [TARGET=table_name]
+           [ OVERWRITING=[0|1] (default is 0)
+           | IGNORE=[0|1] ]    (default is 0) (at most only one of these two can be set)
+           [ [ DELIMITER=delimiter] 
+           |[ column_name delimited_position, [n…] ] ]
+           [ADD_TRAILING_DELIMITER=[0|1]] (default is 0)
+           [ TERMINATOR=terminator ]
+           [ LOCK=[0|1]]   (default is 0)
+           [ SILENT=[0|1]]  (default is 0)
+           [ START_LINE=line_num ] 
+           [ END_LINE=line_num ] 
+           [ POSITION_FORMATTED { column_name start:stop, [n...] } ]
+           [ QUOTED=quote_character ]
+           [ COMMIT_INTERVAL=integer ]
+           [ MAX_ERRORS=integer ]
+           [ DATA_ERROR_FILE=filename ]
+           [ DRIVERCLASS=driverclass ]  (default to extendb.connect.XDriver)]  
+           [ JDBC_URL=jdbc_url of target database ]
+         ]]>
+       </programlisting>
+     </para>
+   </sect2>
+
+   <sect2 id="exporting">
+     <title>Exporting</title>
+
+     <para>
+       <programlisting>
+         <![CDATA[
+           [ EXTRACT=query_string ]
+           [ OUTFILE=file_name ]
+           [TRIM_TRAILING_SPACES=[0|1] (default is 0)
+         ]]>
+       </programlisting>
+     </para>
+   </sect2>
+
+   <para>
+     A table appears below that describes both the command line options and 
+     the format file parameters, depending on the preferred mode of usage.
+   </para>
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para>Format File Value</para>
+            </entry>
+            <entry>
+               <para>Command Line Option</para>
+            </entry>
+            <entry>
+               <para>Description</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>-f</para>
+            </entry>
+            <entry>
+               <para>
+                 Specifies a format file to use to allow more complex mapping 
+                 information to appear. Followed by the file name for the 
+                 formatting.  Command line option only.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>INFILE</para>
+            </entry>
+            <entry>
+               <para>-i</para>
+            </entry>
+            <entry>
+               <para>
+                 Import (-i), followed by the source file. If no source file 
+                 specified, data is read from stdin. 
+               </para>
+               <para>Required for command line operation</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>TARGET</para>
+            </entry>
+            <entry>
+               <para>-t</para>
+            </entry>
+            <entry>
+               <para>The target table, if importing</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>OUTFILE</para>
+            </entry>
+            <entry>
+               <para>-x</para>
+            </entry>
+            <entry>
+               <para>
+                 Export (-x), followed by the query sting and output or target 
+                 file name. Required for command line operation
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>EXTRACT (query string)</para>
+            </entry>
+            <entry>
+               <para>-y</para>
+            </entry>
+            <entry>
+               <para>
+                 The SQL query to run to get the data. If it is just a single 
+                 word, it is assumed to be the name of the table and will do 
+                 a “SELECT * FROM &lt;table&gt;”.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>OVERWRITING or IGNORE</para>
+            </entry>
+            <entry>
+               <para>-w, -g</para>
+            </entry>
+            <entry>
+               <para>
+                 Used for handling input records that duplicate existing 
+                 records on primary key values. If OVERWRITING is specified, 
+                 rows will get overwritten with the new data, provided they 
+                 have the same value for primary or unique index as the row 
+                 to be replaced. If IGNORE is specified, rows will be ignored 
+                 with the new data if they have the same value for primary or 
+                 unique index as the row to be replaced. If neither option is 
+                 present, it will always try and insert the row (default). 
+                 These are mutually exclusive.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>DELIMITER</para>
+            </entry>
+            <entry>
+               <para>-d</para>
+            </entry>
+            <entry>
+               <para>
+                 Default delimiter is TAB (\t). Optionally, in the format file,
+                 it can be followed by matching column names with the 
+                 positional delimited items, to allow the data to be mapped. 
+                 Command line option for mapping column names is not available.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>ADD_TRAILING_DELIMITER</para>
+            </entry>
+            <entry>
+               <para>-a</para>
+            </entry>
+            <entry>
+               <para>
+                 Indicates that a final delimiter follows the last field.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>TERMINATOR</para>
+            </entry>
+            <entry>
+               <para>-z</para>
+            </entry>
+            <entry>
+               <para>Default is carriage return</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>LOCK</para>
+            </entry>
+            <entry>
+               <para>-l</para>
+            </entry>
+            <entry>
+               <para>Whether or not to lock the entire table</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>SILENT</para>
+            </entry>
+            <entry>
+               <para>-h</para>
+            </entry>
+            <entry>
+               <para>
+                 If Omitted, the number of rows processed will be displayed 
+                 every 10,000 rows. Default is verbose
+                </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>START_LINE</para>
+            </entry>
+            <entry>
+               <para>-s</para>
+            </entry>
+            <entry>
+               <para>
+                 Default will begin at 1. This is useful if importing from a 
+                 large file and something goes wrong after 210,000 records 
+                 for example. The import can be restarted with the same 
+                 import file, but told to start on line number 210,001.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>END_LINE</para>
+            </entry>
+            <entry>
+               <para>-e</para>
+            </entry>
+            <entry>
+               <para>Default will be the end of file</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>POSITION_FORMATTED</para>
+            </entry>
+            <entry>
+               <para>-p</para>
+            </entry>
+            <entry>
+               <para>
+                 Used to match column_name with start and stop character 
+                 positions of data in the row, for non-delimited, fixed 
+                 format import files.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>QUOTED</para>
+            </entry>
+            <entry>
+               <para>-q</para>
+            </entry>
+            <entry>
+               <para>Used if data is quoted, surrounded by “ or ‘. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>COMMIT_INTERVAL</para>
+            </entry>
+            <entry>
+               <para>-c</para>
+            </entry>
+            <entry>
+               <para>
+                 Default is to commit after each insert. Otherwise, batches 
+                 will be used, and the batch will be committed after every 
+                 COMMIT_INTERVAL number of rows. It is important to use this 
+                 for faster loads. 
+               </para>
+               <para>If exporting, this is the fetch size used.</para>
+               <para>In both cases, the default value is 1000.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>MAX_ERRORS</para>
+            </entry>
+            <entry>
+               <para>-m</para>
+            </entry>
+            <entry>
+               <para>
+                 Default is 1. Set to any positive integer to instruct the 
+                 loader to continue processing up until at least that many 
+                 errors occur. Setting to 0 (zero) will ignore all errors, 
+                 and always continue to load the next line from the file.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>DATA_ERROR_FILE</para>
+            </entry>
+            <entry>
+               <para>-r</para>
+            </entry>
+            <entry>
+               <para>
+                 Specifies target file for rows that could not be loaded up 
+                 successfully. This way, the user can first try and load 
+                 entire file, then just work with problematic data in a 
+                 separate file that could not be loaded up, and try again.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>JDBC_URL</para>
+            </entry>
+            <entry>
+               <para>-j</para>
+            </entry>
+            <entry>
+               <para>
+                 The JDBC URL for connecting to the server. For example: 
+                 jdbc:xdb:BIGDB:myuser/mypassword@extendbhost
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>DRIVERCLASS</para>
+            </entry>
+            <entry>
+               <para>-C</para>
+            </entry>
+            <entry>
+               <para>
+                 The driver class name, if exporting from other databases, 
+                 for example, like: org.postgresql.driver.Driver.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>TRIM_TRAILING_SPACES</para>
+            </entry>
+            <entry>
+               <para>-T</para>
+            </entry>
+            <entry>
+               <para>
+                 If set, strings that are read from the source that have 
+                 trailing spaces in them will be trimmed when writing to the 
+                 output file. That is useful for saving disk space for large 
+                 files, but it can impact your data- if you were expecting a 
+                 column to contain a single space, for example, it will 
+                 now be empty.
+               </para>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+  </sect1>
+
+  <sect1 id="importing">
+   <title>Importing</title>
+
+     <para>
+       A command line option should be available for use with all the commands 
+       unless there are mapping columns used, as available POSITION_FORMATTED.  
+       If the column order differs in the source file from the target table, 
+       the user must use a format file to describe the mapping and cannot 
+       do this via the command line.
+     </para>
+
+     <para>Example:</para>
+     <para>
+       Note that we must proceed &amp; with backslash here.
+     </para>
+
+     <para>
+       <programlisting>
+         <![CDATA[
+         gs-impex -c 1000 –d '|' -i customer.dat –t customer 
+                  -j jdbc:postgresql://host:6453/BIGDB?user=usermyuser\&password=mypassword 
+        ]]>
+       </programlisting>
+     </para>
+
+     <para>
+       This will import the customer.data file into customer, with a pipe 
+       delimiter and a batch size of 1000, using the specified jdbc string.
+     </para>
+
+  </sect1>
+
+  <sect1 id="exporting">
+   <title>Exporting</title>
+
+     <para>Example:</para>
+     <para>
+       Note that we must proceed &amp; with backslash here.
+     </para>
+
+     <para>
+       <programlisting>
+         <![CDATA[
+         gs-impex –x orders.out –t orders 
+                  –j jdbc:postgresql://host:6453/BIGDB?user=myuser\&password=mypassword
+
+         gs-impex –x orders.out –y orders 
+                  –j jdbc:postgresql://host:6453/BIGDB?user=usermyuser\&password=mypassword
+
+         gs-impex –x orders.out –y “select * from orders” 
+                  –j jdbc:postgresqk://host:6453/BIGDB?user=usermyuser\&password=mypassword
+        ]]>
+       </programlisting>
+     </para>
+
+     <para>
+       The following example demonstrates using a format file and exporting from a 
+       PostgreSQL database:
+     </para>
+
+     <para>
+       <programlisting>
+         <![CDATA[
+         gs-impex –f format.txt
+        ]]>
+       </programlisting>
+     </para>
+
+     <para>
+       where format.txt is:
+     </para>
+
+     <para>
+       <programlisting>
+         <![CDATA[
+         EXTRACT=select * from atable
+         DRIVERCLASS=org.postgresql.driver.Driver
+         JDBC_URL=jdbc:postgresql://localhost/mydb?user=myuser&password=mypassword
+         OUTFILE=/tmp/atable.txt
+        ]]>
+       </programlisting>
+     </para>
+  </sect1>
+ </chapter>
+</book>
+

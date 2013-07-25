@@ -1,0 +1,121 @@
+Release Notes for Stado version 2.5
+-------------------------------------
+
+This software requires the Java Runtime Environment 5,
+version 1.5.0_12 or later. Earlier versions of the JRE may 
+result in memory leaks that over time result in an OutOfMemory
+exception. 
+
+Stado has also been successfully tested with Java 6 update 18,
+and is recommended. 
+
+If Stado was not installed via an installer that included a
+JRE, please go to http://java.sun.com/javase/downloads/index.jsp 
+to download a Java Runtime Environment 
+
+After installing, please make sure that your PATH environment
+variable refers to the JRE's bin directory.
+
+
+This version includes enhancements, performance improvements 
+and minor bug fixes, including
+
+- Support for PostGIS 1.5 queries
+- Faster database row shipping through the use of PostgreSQL
+  unlogged tables
+- Integrated the PostgreSQL JDBC driver
+- Expanded query syntax
+
+
+Previous Releases
+-----------------
+
+2.0 Release Notes
+-----------------
+This version includes enhancements, performance improvements 
+and minor bug fixes, including
+
+- Faster, more efficient row shipping which makes cross-node 
+  queries and multi-node aggregation execute more quickly
+- Faster dumping of data via COPY
+- EXPLAIN command is now supported which shows how Stado processes 
+  queries
+- Improved thread connection handling
+- Better compatibility with PostgreSQL connectors
+- Added support for multiple statements in one request
+- Expression based indexes may now be created
+- Expanded support for usage of inet, macaddr, and cidr data types
+
+1.1 Release Notes
+-----------------
+This version includes several minor enhancements, performance
+improvements and bug fixes.
+
+- Added support for macaddr, inet, and cidr data types and functions
+- Better performance with GROUP BY when there are few distinct
+  groups in the first GROUP BY element
+- Better performance for common INSERT SELECT cases
+- Correlated DELETE regression case fixed
+- Fixed UNION regression cases
+- Other minor bug fixes
+
+
+1.0 Release Notes
+-----------------
+- Added support for SELECT INTO and CREATE TABLE AS SELECT
+- Support for WITH CSV clause in COPY command
+- Improvements to interoperate better with 3rd party tools
+- Minor bug fixes
+
+0.9 Release Notes
+-----------------
+The two new major features are Oracle compatiblity and support for 
+the PostgreSQL protocol.
+
+Oracle compatibility for Postgres Plus Advanced Server was added, 
+including support for:
+ - functions 
+ - operators
+ - data types
+ - (+) outer join syntax (left joins only)
+ - FROM DUAL syntax
+
+Support for the PostgreSQL protocol was added.
+This means there is no need to use the legacy Stado drivers;
+users can connect to Stado using EnterpriseDB's or PostgreSQL's 
+JDBC, ODBC and .NET drivers. Other drivers were not tested.
+Users may also connect to Stado using psql or edb-psql, passing 
+in the proper port with -p (default 6453).
+
+To also facilitate moving to the PostgreSQL protocol, some 
+additional SQL commands were added: CREATE DATABASE, DROP DATABSE,
+START DATABASE, STOP DATABASE, and SHUTDOWN.
+
+Support for a subset of the COPY command was also added. 
+The gs-loader utility now internally makes use of the COPY protocol
+and some of the options have been modified as a result.
+
+In addition, various minor changes were made for better 
+Postgres Plus Advanced Server integration.
+
+Additional Changes:
+
+- Made users global across Stado, instead of being specific to a database
+- Added limited parameter support for PreparedStatements,
+  and improved handling on server to avoid reparsing and replanning.
+- Added support for EnterpriseDB SHOW commands
+- Added support for ALTER TABLE RENAME COLUMN.
+- Added support for ILIKE, SIMILAR TO, and ~
+- Added support for current_user(), a synonym for user().
+- Performance enhancements, including batches, ANALYZE, result combining, 
+  UPDATE and DELETE
+
+Known Issues
+------------
+The xdbimpex utility has a bug with the -c option, commit interval. It is
+recommended to use COPY FROM or gs-loader anyway.
+
+Some forms of correlated subqueries in the HAVING clause currently do not
+work.
+
+ORDER BY on the boolean and interval data types is not sorted properly.

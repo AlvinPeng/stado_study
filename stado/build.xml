@@ -1,0 +1,203 @@
+<?xml version="1.0"?>
+<!--
+
+  Copyright (c) 2011, Stado Global Development Group
+
+  Build file to allow ant (http://ant.apache.org/) to be used
+  to build Stado.
+-->
+
+<!DOCTYPE project [
+  <!ENTITY jarfiles "stado.jar">
+]>
+
+<project name="stado" default="all" basedir=".">
+
+  <!-- set global properties for this build -->
+  <property name="srcdir"  value="src" />
+  <property name="jardir"  value="jars" />
+  <property name="libdir"  value="lib" />
+  <property name="builddir" value="build" />
+  <property name="distdir" value="dist" />
+  <property name="package" value="org/postgresql/stado" />
+  <property name="driver" value="org/postgresql/driver" />
+  <property name="parser" value="org/postgresql/stado/parser/core" />
+  <property name="packdir" value="${srcdir}/${package}" />
+  <property name="driverdir" value="${srcdir}/${driver}" />
+  <property name="parserdir" value="${srcdir}/${parser}" />
+  <property name="version" value="2_5_beta" />
+
+  <target name="clean">
+    <delete quiet="true" dir="${builddir}" />
+    <delete quiet="true" dir="${jardir}" />
+    <delete quiet="true" dir="${distdir}" />
+  </target>
+
+  <target name="prepare">
+    <mkdir dir="${builddir}" />
+    <mkdir dir="${jardir}" />
+    <mkdir dir="${distdir}" />
+  </target>
+
+  <!-- default target -->
+  <target name="all">
+    <antcall target="jar" />
+  </target>
+
+  <!-- create the jar file -->
+  <target name="jar" depends="compile">
+    <jar jarfile="${jardir}/stado.jar">
+      <fileset dir="${builddir}">
+        <include name="${package}/**/*.class" />
+        <include name="${driver}/**/*.class" />
+      </fileset>
+    </jar>
+  </target>
+
+  <target name="compile" depends="prepare">
+    <javac srcdir="${driverdir}" destdir="${builddir}" source="1.6" includeAntRuntime="false">
+       <classpath>
+         <pathelement path="${builddir}" />
+       </classpath>
+
+       <include name="*.java" />
+       <include name="copy/**" />
+       <include name="core/**" />
+       <include name="ds/**" />
+       <include name="jdbc2/**" />
+       <include name="jdbc3/**" />
+       <include name="ssl/**" />
+       <include name="util/**" />
+    </javac>
+
+    <javac srcdir="${packdir}" destdir="${builddir}" source="1.6" includeAntRuntime="false">
+       <classpath>
+         <pathelement location="${libdir}/log4j.jar" />
+         <pathelement location="${libdir}/jline-0_9_5.jar" />
+         <pathelement path="${builddir}" />
+       </classpath>
+
+       <include name="parser/**" />
+       <include name="common/**" />
+       <include name="communication/**" />
+       <include name="constraintchecker/**" />
+       <include name="engine/**" />
+       <include name="exception/**" />
+       <include name="metadata/**" />
+       <include name="misc/**" />
+       <include name="optimizer/**" />
+       <include name="protocol/**" />
+       <include name="planner/**" />
+       <include name="util/**" />
+       <include name="queryproc/**" />
+       <include name="server/**" />
+
+    </javac>
+  </target>
+
+  <target name="buildparser">
+    <delete quiet="false" file="${basedir}/jtb.out.jj" />
+    <delete><fileset dir="${parserdir}" includes="*.java" /></delete>
+    <delete><fileset dir="${parserdir}/syntaxtree/" includes="*.java" /></delete>
+    <delete><fileset dir="${parserdir}/visitor/" includes="*.java" /></delete>
+
+    <java classname="EDU.purdue.jtb.JTB" fork="true" dir="${parserdir}">
+         <arg line="-p org.postgresql.stado.parser.core -o jtb.out.jj sql_extendb.jj"/>
+         <classpath>
+           <pathelement location="${libdir}/jtb.jar"/>
+         </classpath>
+    </java>
+
+    <java classname="javacc" fork="true" dir="${parserdir}">
+         <arg line="jtb.out.jj"/>
+         <classpath>
+           <pathelement location="${libdir}/javacc.jar"/>
+         </classpath>
+    </java>
+  </target>
+
+  <target name="builddist" depends="clean, buildparser, jar, doc">
+    <mkdir dir="${distdir}/stado" />
+    <mkdir dir="${distdir}/stado/lib" />
+    <mkdir dir="${distdir}/stado/bin" />
+    <mkdir dir="${distdir}/stado/doc" />
+    <mkdir dir="${distdir}/stado/log" />
+    <mkdir dir="${distdir}/stado/config" />
+    <mkdir dir="${distdir}/stado/license" />
+
+    <copy file="${jardir}/stado.jar" todir="${distdir}/stado/lib"/>
+    <copy file="${libdir}/jline-0_9_5.jar" todir="${distdir}/stado/lib"/>
+    <copy file="${libdir}/log4j.jar" todir="${distdir}/stado/lib"/>
+    
+    <copy file="${libdir}/jline_license.txt" todir="${distdir}/stado/license"/>
+    <copy file="${libdir}/log4j_license.txt" todir="${distdir}/stado/license"/>
+    <copy file="misc/license.txt" todir="${distdir}/stado/license"/>
+
+    <copy file="${srcdir}/config/server/stado.config" todir="${distdir}/stado/config"/>
+    <copy file="${srcdir}/config/agent/stado_agent.config" todir="${distdir}/stado/config"/>
+
+    <copy todir="${distdir}/stado/bin/">
+      <fileset dir="${srcdir}/scripts/server"/>
+    </copy>
+    <copy todir="${distdir}/stado/bin/">
+      <fileset dir="${srcdir}/scripts/agent"/>
+    </copy>
+    <copy todir="${distdir}/stado/bin/">
+      <fileset dir="${srcdir}/scripts/client"/>
+    </copy>
+
+    <copy file="misc/release_notes.txt" todir="${distdir}/stado/doc"/>
+    <copy todir="${distdir}/stado/doc/">
+      <fileset dir="${builddir}/doc"/>
+    </copy>
+
+    <tar destfile="${distdir}/stado.tar" basedir="${distdir}"/>
+    <gzip destfile="${distdir}/stado_${version}.tar.gz" src="${distdir}/stado.tar"/>
+    <delete quiet="true" file="${distdir}/stado.tar" />
+
+  </target>  
+
+  <!-- Build the documentation -->
+  <target name="doc" depends="prepare">
+    <mkdir dir="${builddir}/doc" />
+    <mkdir dir="${builddir}/doc/images" />
+
+    <copy todir="${builddir}/doc/images">
+      <fileset dir="docs/images"/>
+    </copy>
+
+    <exec executable="xmlto">
+      <arg value="--skip-validation"/>
+      <arg value="html-nochunks"/>
+      <arg value="-o"/>
+      <arg value="${builddir}/doc"/>
+      <arg value="docs/stado_loader.xml"/>
+    </exec>
+
+    <exec executable="xmlto">
+      <arg value="--skip-validation"/>
+      <arg value="html-nochunks"/>
+      <arg value="-o"/>
+      <arg value="${builddir}/doc"/>
+      <arg value="docs/stado_planning_guide.xml"/>
+    </exec>
+
+    <exec executable="xmlto">
+      <arg value="--skip-validation"/>
+      <arg value="html-nochunks"/>
+      <arg value="-o"/>
+      <arg value="${builddir}/doc"/>
+      <arg value="docs/stado_sql_reference.xml"/>
+    </exec>
+
+    <exec executable="xmlto">
+      <arg value="--skip-validation"/>
+      <arg value="html-nochunks"/>
+      <arg value="-o"/>
+      <arg value="${builddir}/doc"/>
+      <arg value="docs/stado_admin_guide.xml"/>
+    </exec>
+  </target>
+
+</project>
+

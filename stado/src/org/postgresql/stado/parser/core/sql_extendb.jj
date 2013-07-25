@@ -1,0 +1,3211 @@
+/*****************************************************************************
+ * Copyright (C) 2008 EnterpriseDB Corporation.
+ * Copyright (C) 2011 Stado Global Development Group
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published by
+ * the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, see http://www.gnu.org/licenses or write to the
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301 USA.
+ *
+ * You can find Stado at http://www.stado.us
+ *
+ ****************************************************************************/
+/*
+	The create definition implemented by this file is as follows :
+
+	PROCESS-> CREATE TABLE CREATEDEFINITION PARTITIONDECLARE
+	CREATEDEFINITION->PARENTHESISSTART (COLDECLARATION) [COMMA COLDECLARATION]* PARENTHESISCLOSE
+	COLDECLARATION-> COLNAME TYPE [NULL|NOT NULL|DEFAULT VALUE]
+	PARTITIONDECLARE->PARTITIONING KEY| PARTITION WITH PARENT | REPLICATED | ON NODE PARENTHEIS_START NDOENUM PARENTHESISCLOSE
+	NODENUM -> DIGIT(DIGIT)*
+	TYPE-> REAL | INT|INTEGER|DECIMAL|DATE|TIME|NUMERIC|CHAR|VARCHAR|SMALLINT|FLOAT|TIMESTAMP
+	DATE->DIGIT DIGIT /DIGIT DIGIT/DIGIT DIGIT DIGIT DIGIT
+	TIME->DIGIT DIGIT:DIGIT DIGIT:DIGIT DIGIT
+
+	Note :
+	jtb -p org.postgresql.stado.parser.core sql_extendb.jj
+	javacc jtb.out.jj
+*/
+options
+{
+	IGNORE_CASE  =true;
+	STATIC = false;
+	UNICODE_INPUT=true;
+	CHOICE_AMBIGUITY_CHECK=1;
+	CACHE_TOKENS = true;
+}
+PARSER_BEGIN(CSQLParser)
+package	org.postgresql.stado.parser.core;
+import java.io.PrintStream;
+
+public class CSQLParser{
+public static void  main (String [] args)
+throws ParseException, TokenMgrError{
+    CSQLParser parser = new CSQLParser(System.in);
+    process rootnode =  parser.process(System.out);
+}
+
+}
+PARSER_END(CSQLParser)
+SKIP:
+{
+    " "
+  | "\n"
+  | "\r"
+  | "\t"
+}
+
+
+SKIP:
+{
+  <COMMENT_LINE: "--" (~["\n","\r"])* ("\n"|"\r"|"\r\n") >
+}
+
+SKIP:
+{
+  <COMMENT_BLOCK: "/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+
+TOKEN :/*Key Words*/
+{
+ <NOT_BITWISE_:"~">
+|<LESS_:"<">
+|<EQUALS_:"=">
+|<GREATER_:">">
+|<OR_BITWISE_:"|">
+|<MINUS_:"-">
+|<SEMICOLON_:";">
+|<FACTORIAL_:"!">
+|<DIVIDE_:"/">
+|<QUOTE:"\"">
+|<PARENTHESIS_START_:"(">
+|<PARENTHESIS_CLOSE_:")">
+|<ABSOLUTE_:"@">
+|<STAR_:"*">
+|<AND_BITWISE_:"&">
+|<XOR_BITWISE_:"#">
+|<MODULO_:"%">
+|<PLUS_:"+">
+|<GIS_SAME_:"~=">
+|<REGEX_MATCHES_CASE_INSTV_:"~*">
+|<SHIFT_LEFT_BITWISE_:"<<">
+|<LESS_EQUALS_:"<=">
+|<NOT_EQUALS_2_:"<>">
+|<GREATER_EQUALS_:">=">
+|<SHIFT_RIGHT_BITWISE_:">>">
+|<CONCAT_:"||">
+|<SQUARE_ROOT_:"|/">
+|<REGEX_NOT_MATCHES_:"!~">
+|<NOT_EQUALS_:"!=">
+|<FACTORIAL_PREFIX_:"!!">
+|<GIS_OVERLAPS_LEFT_:"&<">
+|<GIS_OVERLAPS_RIGHT_:"&>">
+|<GIS_OVERLAPS_:"&&">
+|<AS_:"AS">
+|<IN_:"IN">
+|<IS_:"IS">
+|<NO_:"NO">
+|<ON_:"ON">
+|<OR_:"OR">
+|<TO_:"TO">
+|<CONTAINED_WITHIN_OR_EQUALS_:"<<=">
+|<GIS_STRICT_BELOW_:"<<|">
+|<CONTAINS_OR_EQUALS_:">>=">
+|<GIS_STRICT_ABOVE_:"|>>">
+|<CUBE_ROOT_:"||/">
+|<GIS_OVERLAPS_ABOVE_:"|&>">
+|<REGEX_NOT_MATCHES_CASE_INSTV_:"!~*">
+|<LEFTOUTER_:"(+)">
+|<GIS_OVERLAPS_BELOW_:"&<|">
+|<ADD_:"ADD">
+|<ALL_:"ALL">
+|<AND_:"AND">
+|<ANY_:"ANY">
+|<ASC_:"ASC">
+|<AVERAGE_:"AVG">
+|<BIT_:"BIT">
+|<CSV_:"CSV">
+|<DAY_:"DAY">
+|<DBA_:"DBA">
+|<DEC_:"DEC">
+|<END_:"END">
+|<FOR_:"FOR">
+|<INT_:"INT">
+|<MAX_:"MAX">
+|<MIN_:"MIN">
+|<NOT_:"NOT">
+|<RAW_:"RAW">
+|<SET_:"SET">
+|<SUM_:"SUM">
+|<BLOB_:"BLOB">
+|<BOTH:"BOTH">
+|<BYTE_:"BYTE">
+|<CASE_:"CASE">
+|<CAST_:"CAST">
+|<CHAR_:"CHAR">
+|<CIDR_:"CIDR">
+|<CLOB_:"CLOB">
+|<COPY_:"COPY">
+|<CORR_:"CORR">
+|<DATE_:"DATE">
+|<DESC_:"DESC">
+|<DROP_:"DROP">
+|<ELSE_:"ELSE">
+|<FROM_:"FROM">
+|<FULL_:"FULL">
+|<HOUR_:"HOUR">
+|<INET_:"INET">
+|<INT2_:"INT2">
+|<INT4_:"INT4">
+|<INT8_:"INT8">
+|<INTO_:"INTO">
+|<JOIN_:"JOIN">
+|<KILL_:"KILL">
+|<LEFT_:"LEFT">
+|<LIKE_:"LIKE">
+|<LONG_:"LONG">
+|<NODE_:"NODE">
+|<NULL_:"NULL">
+|<OIDS_:"OIDS">
+|<PORT_:"PORT">
+|<REAL_:"REAL">
+|<SHOW_:"SHOW">
+|<SOME_:"SOME">
+|<TEMP_:"TEMP">
+|<TEXT_:"TEXT">
+|<THEN_:"THEN">
+|<TIME_:"TIME">
+|<TRAN_:"TRAN">
+|<TRIM_:"TRIM">
+|<TRUE_:"TRUE">
+|<TYPE_:"TYPE">
+|<USER_:"USER">
+|<VIEW_:"VIEW">
+|<WEEK_:"WEEK">
+|<WHEN_:"WHEN">
+|<WITH_:"WITH">
+|<WORK_:"WORK">
+|<YEAR_:"YEAR">
+|<AFTER_:"AFTER">
+|<ALTER_:"ALTER">
+|<BEGIN_:"BEGIN">
+|<BOX2D_:"BOX2D">
+|<BOX3D_:"BOX3D">
+|<BYTEA_:"BYTEA">
+|<CHECK_:"CHECK">
+|<CLOSE_:"CLOSE">
+|<COUNT_:"COUNT">
+|<CROSS_:"CROSS">
+|<EVERY_:"EVERY">
+|<FALSE_:"FALSE">
+|<FETCH_:"FETCH">
+|<FIRST_:"FIRST">
+|<FIXED_:"FIXED">
+|<FLOAT_:"FLOAT">
+|<FORCE_:"FORCE">
+|<GRANT_:"GRANT">
+|<ILIKE_:"ILIKE">
+|<IMAGE_:"IMAGE">
+|<INDEX_:"INDEX">
+|<INNER_:"INNER">
+|<LIMIT_:"LIMIT">
+|<LOCAL_:"LOCAL">
+|<MONEY_:"MONEY">
+|<MONTH_:"MONTH">
+|<NCHAR_:"NCHAR">
+|<NODES_:"NODES">
+|<OUTER_:"OUTER">
+|<OWNER_:"OWNER">
+|<QUOTE_STRING_:"QUOTE">
+|<RIGHT_:"RIGHT">
+|<STDIN_:"STDIN">
+|<TABLE_:"TABLE">
+|<TEMPDOT_:"TEMP.">
+|<UNION_:"UNION">
+|<USING_:"USING">
+|<WHERE_:"WHERE">
+|<BIGINT_:"BIGINT">
+|<BINARY_:"BINARY">
+|<BIT_OR_:"BIT_OR">
+|<COLUMN_:"COLUMN">
+|<COMMIT_:"COMMIT">
+|<CREATE_:"CREATE">
+|<CURSOR_:"CURSOR">
+|<DELETE_:"DELETE">
+|<DIRECT_:"DIRECT">
+|<ESCAPE_:"ESCAPE">
+|<EXISTS_:"EXISTS">
+|<FLOAT4_:"FLOAT4">
+|<FLOAT8_:"FLOAT8">
+|<FREEZE_:"FREEZE">
+|<GLOBAL_:"GLOBAL">
+|<HAVING_:"HAVING">
+|<INSERT_:"INSERT">
+|<MANUAL_:"MANUAL">
+|<MINUTE_:"MINUTE">
+|<MODIFY_:"MODIFY">
+|<NULLIF_:"NULLIF">
+|<NUMBER_:"NUMBER">
+|<OFFSET_:"OFFSET">
+|<PARENT_:"PARENT">
+|<PUBLIC_:"PUBLIC">
+|<RENAME_:"RENAME">
+|<REVOKE_:"REVOKE">
+|<SECOND_:"SECOND">
+|<SELECT_:"SELECT">
+|<SERIAL_:"SERIAL">
+|<STDDEV_:"STDDEV">
+|<STDOUT_:"STDOUT">
+|<UNIQUE_:"UNIQUE">
+|<UPDATE_:"UPDATE">
+|<VACUUM_:"VACUUM">
+|<VARBIT_:"VARBIT">
+|<ANALYZE_:"ANALYZE">
+|<BETWEEN_:"BETWEEN">
+|<BIT_AND_:"BIT_AND">
+|<BOOL_OR_:"BOOL_OR">
+|<CLUSTER_:"CLUSTER">
+|<CONVERT_:"CONVERT">
+|<DECIMAL_:"DECIMAL">
+|<DECLARE_:"DECLARE">
+|<DEFAULT_:"DEFAULT">
+|<EXPLAIN_:"EXPLAIN">
+|<EXTRACT_:"EXTRACT">
+|<INHERIT_:"INHERIT">
+|<INTEGER_:"INTEGER">
+|<LEADING:"LEADING">
+|<MACADDR_:"MACADDR">
+|<NATURAL_:"NATURAL">
+|<NUMERIC_:"NUMERIC">
+|<OVERLAY_:"OVERLAY">
+|<PLACING_:"PLACING">
+|<PREPARE_:"PREPARE">
+|<PUBLICDOT_:"PUBLIC.">
+|<QUARTER_:"QUARTER">
+|<REGR_R2_:"REGR_R2">
+|<REPLACE_:"REPLACE">
+|<SPATIAL_:"SPATIAL">
+|<STORAGE_:"STORAGE">
+|<TINYINT_:"TINYINT">
+|<VARCHAR_:"VARCHAR">
+|<VAR_POP_:"VAR_POP">
+|<VARYING_:"VARYING">
+|<VERBOSE_:"VERBOSE">
+|<VERSION_:"VERSION">
+|<ADD_NODE_:"ADD NODE">
+|<ASBINARY_:"ASBINARY">
+|<BOOL_AND_:"BOOL_AND">
+|<COALESCE_:"COALESCE">
+|<DATABASE_:"DATABASE">
+|<DATETIME_:"DATETIME">
+|<DESCRIBE_:"DESCRIBE">
+|<DISTINCT_:"DISTINCT">
+|<GEOMETRY_:"GEOMETRY">
+|<INHERITS_:"INHERITS">
+|<INTERVAL_:"INTERVAL">
+|<LOCATION_:"LOCATION">
+|<LONG_RAW_:"LONG RAW">
+|<LONGTEXT_:"LONGTEXT">
+|<LVARCHAR_:"LVARCHAR">
+|<NATIONAL_:"NATIONAL">
+|<OVERLAPS_:"OVERLAPS">
+|<PASSWORD_:"PASSWORD">
+|<REGCLASS_:"REGCLASS">
+|<REGR_SXX_:"REGR_SXX">
+|<REGR_SXY_:"REGR_SXY">
+|<REGR_SYY_:"REGR_SYY">
+|<RESOURCE_:"RESOURCE">
+|<ROLLBACK_:"ROLLBACK">
+|<SHUT_DOWN_:"SHUTDOWN">
+|<SMALLINT_:"SMALLINT">
+|<STANDARD_:"STANDARD">
+|<TINYTEXT_:"TINYTEXT">
+|<TRAILING:"TRAILING">
+|<TRUNCATE_:"TRUNCATE">
+|<UNLISTEN_:"UNLISTEN">
+|<UNSIGNED_:"UNSIGNED">
+|<VARCHAR2_:"VARCHAR2">
+|<VARIANCE_:"VARIANCE">
+|<VAR_SAMP_:"VAR_SAMP">
+|<ZEROFILL_:"ZEROFILL">
+|<BIGSERIAL_:"BIGSERIAL">
+|<CHARACHTER_:"CHARACTER">
+|<COVAR_POP_:"COVAR_POP">
+|<DELIMITER_:"DELIMITER">
+|<DROP_NODE_:"DROP NODE">
+|<QPUBLICDOT_:"\"PUBLIC\".">
+|<READ_ONLY_:"READ_ONLY">
+|<REGR_AVGX_:"REGR_AVGX">
+|<REGR_AVGY_:"REGR_AVGY">
+|<SUBSTRING_:"SUBSTRING">
+|<TEMPORARY_:"TEMPORARY">
+|<TIMESTAMP_:"TIMESTAMP">
+|<VARBINARY_:"VARBINARY">
+|<BIGINTEGER_:"BIGINTEGER">
+|<BITVARYING_:"BITVARYING">
+|<CONSTRAINT_:"CONSTRAINT">
+|<COVAR_SAMP_:"COVAR_SAMP">
+|<DEALLOCATE_:"DEALLOCATE">
+|<MEDIUMTEXT_:"MEDIUMTEXT">
+|<READ_WRITE_:"READ_WRITE">
+|<REFERENCES_:"REFERENCES">
+|<REGR_COUNT_:"REGR_COUNT">
+|<REGR_SLOPE_:"REGR_SLOPE">
+|<REPLICATED_:"REPLICATED">
+|<SMALLFLOAT_:"SMALLFLOAT">
+|<SMALLMONEY_:"SMALLMONEY">
+|<STATISTICS_:"STATISTICS">
+|<STDDEV_POP_:"STDDEV_POP">
+|<TABLESPACE_:"TABLESPACE">
+|<BOX3DEXTENT_:"BOX3DEXTENT">
+|<PERIMETER2D_:"PERIMETER2D">
+|<PERIMETER3D_:"PERIMETER3D">
+|<STDDEV_SAMP_:"STDDEV_SAMP">
+|<TRANSACTION_:"TRANSACTION">
+|<CURRENTDATE_:"CURRENT_DATE">
+|<CURRENT_TIME_:"CURRENT_TIME">
+|<CURRENT_USER_:"CURRENT_USER">
+|<LONG_VARCHAR_:"LONG VARCHAR">
+|<SERIALIZABLE_:"SERIALIZABLE">
+|<VARIANCE_POP_:"VARIANCE_POP">
+|<SAMLLDATETIME_:"SMALLDATETIME">
+|<VARIANCE_SAMP_:"VARIANCE_SAMP">
+|<CURRENT_SCHEMA_:"CURRENT_SCHEMA">
+|<REGR_INTERCEPT_:"REGR_INTERCEPT">
+|<CLOCK_TIMESTAMP_:"CLOCK_TIMESTAMP">
+|<CURRENT_DATABASE_:"CURRENT_DATABASE">
+|<ADDGEOMETRYCOLUMN_:"ADDGEOMETRYCOLUMN">
+|<CURRENT_TIMESTAMP_:"CURRENT_TIMESTAMP">
+|<STATEMENT_TIMESTAMP_:"STATEMENT_TIMESTAMP">
+|<TRANSACTION_TIMESTAMP_:"TRANSACTION_TIMESTAMP">
+|<ONLY_:"ONLY">
+}
+
+
+
+TOKEN: /*Function Arguments*/
+{
+<UNARY_SIGN_:(<PLUS_> |<MINUS_>)>
+|<ORDER_BY_:"ORDER"(" ")+"BY">
+|<UPDATE_STAT_:"UPDATE"(" ")+("STAT"|"STATISTICS")>
+|<PRIMARYKEY_: "PRIMARY"(" ")+"KEY">
+|<FOREIGNKEY_:"FOREIGN"(" ")+"KEY">
+|<PARTITIONINGKEY_:"PARTITIONING"(" ")+"KEY">
+|<ROUND_ROBIN_:"ROUND"(" ")+"ROBIN"> 
+|<WITH_XROWID_:"WITH"(" ")+"XROWID">
+|<WITHOUT_XROWID_:"WITHOUT"(" ")+"XROWID">
+|<PARTITION_WITH_:"PARTITION"(" ")+"WITH">
+|<START_DB_:"START" (" ")+ "DATABASE">
+|<WAIT_TIMEOUT_:"WAITTIMEOUT" (" ")+>
+|<STOP_DB_:"STOP" (" ")+ "DATABASE">
+|<CREATE_DB_:(<CREATE_>) (" ")+ "DATABASE">
+|<CREATE_NODE_:(<CREATE_>) (" ")+ (<NODE_>)>
+|<DROP_DB_:"DROP" (" ")+ "DATABASE">
+|<SHOW_AGENTS_:"SHOW"(" ")+"AGENTS">
+|<SHOW_CLUSTER_:"SHOW"(" ")+"CLUSTER">
+|<SHOW_STATEMENTS_:"SHOW"(" ")+"STATEMENTS">
+|<SHOW_DATABASES_:"SHOW"(" ")+"DATABASES">
+|<SHOW_TABLES_:"SHOW"(" ")+"TABLES">
+|<SHOW_TRAN_ISOLATION_:"SHOW"(" ")+"TRANSACTION"(" ")+"ISOLATION"(" ")+"LEVEL">
+|<REPEATABLE_READ_:"REPEATABLE"(" ")+"READ"> 
+|<READ_COMMITTED_:"READ"(" ")+"COMMITTED"> 
+|<READ_UNCOMMITTED_:"READ"(" ")+"UNCOMMITTED">
+|<ISOLATION_LEVEL_:"ISOLATION"(" ")+"LEVEL">
+|<SHOW_CONSTRAINTS_:"SHOW"(" ")+"CONSTRAINTS">
+|<OWNER_TO_:"OWNER"(" ")+"TO">
+|<SHOW_TABLE_:"SHOW"(" ")+"TABLE">
+|<SHOW_VIEW_:"SHOW"(" ")+"VIEW">
+|<SHOW_VIEWS_:"SHOW"(" ")+"VIEWS">
+|<SHOW_USERS_:"SHOW"(" ")+"USERS">
+|<FORCE_NOT_NULL_:"FORCE"(" ")+"NOT"(" ")+"NULL">
+|<FORCE_QUOTE_:"FORCE"(" ")+"QUOTE">
+|<ON_COMMIT_:"ON" (" ")+ "COMMIT"> 
+|<PRESERVE_ROWS_:"PRESERVE" (" ")+ "ROWS"> 
+|<DELETE_ROWS_:"DELETE" (" ")+ "ROWS">
+|<GROUP_BY_:"GROUP"(" ")+"BY">
+|<EXEC_:"EXEC"("UTE")?>
+|<SIMILAR_TO_:"SIMILAR"(" ")+"TO">
+|<SHOW_INDEXES_:"SHOW"(" ")+"INDEXES">
+|<WITH_TIMEZONE_:"WITH" (" ")+ "TIME" (" ")+ "ZONE">
+|<WITHOUT_TIMEZONE_:"WITHOUT" (" ")+ "TIME" (" ")+ "ZONE">
+|<DOUBLE_PRECISION_:"DOUBLE" (" ")+ "PRECISION">
+|<BOOLEAN_:"BOOL" ("EAN")?>	
+}
+
+
+TOKEN: 
+{
+
+   <YEAR_FROM: "YEAR" (" ")* "FROM"> 
+ | <QUARTER_FROM: "QUARTER"(" ")*"FROM"> 
+ | <MONTH_FROM: "MONTH"(" ")* "FROM"> 
+ | <WEEK_FROM: "WEEK"(" ")*"FROM"> 
+ | <DAY_FROM: "DAY"(" ")*"FROM"> 
+ | <DOY_FROM: "DOY"(" ")*"FROM"> 
+ | <DOW_FROM: "DOW"(" ")*"FROM"> 
+ | <DECADE_FROM: "DECADE"(" ")*"FROM"> 
+ | <CENTURY_FROM: "CENTURY"(" ")*"FROM">
+ | <HOUR_FROM: "HOUR"(" ")*"FROM"> 
+ | <MINUTE_FROM: "MINUTE"(" ")*"FROM"> 
+ | <SECOND_FROM: "SECOND"(" ")*"FROM">
+ | <MILLISECOND_FROM:"MILLISECONDS"(" ")*"FROM">
+ | <MILLENNIUM_FROM:"MILLENNIUM"(" ")*"FROM">
+ | <MICROSECONDS_FROM:"MICROSECONDS"(" ")*"FROM">
+ | <EPOCH_FROM:"EPOCH"(" ")*"FROM">
+}
+TOKEN: 
+{
+//    <POSITION_:"POSITION" (" ")* "(">
+//    |<VALUES_:"VALUES" (" ")* "(">
+    <POSITION_:"POSITION">
+    |<VALUES_:"VALUES">
+    
+ {
+ 	matchedToken.image = image.substring(0,image.length() - 1);
+ }
+}
+
+/**************
+	Numeric Constatnts
+**************/
+
+TOKEN : /* Literals addded for select -- SUPPORT for floating numbers and Int */
+{
+  <#SINGLEDIGIT: ["0" - "9"]>
+  |
+  <INT_LITERAL: ( <SINGLEDIGIT> )+ >
+  |
+  <DECIMAL_LITERAL: ( <SINGLEDIGIT> )* "." ( <SINGLEDIGIT> )+ >
+  |
+  <SCIENTIFIC_LITERAL: (((<SINGLEDIGIT>)+)?".")?(<SINGLEDIGIT>)+"E"(["-","+"])?(<SINGLEDIGIT>)+>
+}
+
+/****
+	String Literal
+****/
+TOKEN:
+{
+< STRING_LITERAL: "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+}
+
+TOKEN: /* Token for place holder used for prepared statement */
+{
+<PARAM_PLACE_HOLDER: "$"(<SINGLEDIGIT>)+>
+}
+
+TOKEN:
+{
+< INTERVAL_LITERAL: "INTERVAL" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+|< DATE_LITERAL: "DATE" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+|< TIME_LITERAL: "TIME" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+|< TIMESTAMP_LITERAL: "TIMESTAMP" (" ")* ((<WITH_TIMEZONE_> | <WITHOUT_TIMEZONE_>) (" ")*)? "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+|< TEXT_LITERAL: "TEXT" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+|< INTEGER_LITERAL: "INTEGER" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+|< MACADDR_LITERAL: "MACADDR" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+|< CIDR_LITERAL: "CIDR" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+|< INET_LITERAL: "INET" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+|< GEOMETRY_LITERAL: "GEOMETRY" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+//|< BOX2D_LITERAL: "BOX2D" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+//|< BOX3D_LITERAL: "BOX3D" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+//|< BOX3DEXTENT_LITERAL: "BOX3DEXTENT" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+//|< REGCLASS_LITERAL: "REGCLASS" (" ")* "'" (~["'"])* ( "''" (~["'"])* )* "'" >
+
+}
+
+TOKEN:/*SYNTAX*/
+{
+<BINARY_LITERAL:"b'"(("0"|"1"))+"'">
+|
+<HEXDECIMAL_LITERAL:"x'"(("0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"a"|"b"|"c"|"d"|"e"|"f"))+"'">
+}
+
+void numberValue(PrintStream prn):
+{}
+{
+	FloatingPointNumber(prn)
+}
+
+void stringLiteral(PrintStream prn):
+{}
+{
+	<STRING_LITERAL>
+}
+/************************
+	Generic Identifiers
+************************/
+TOKEN :  
+{
+  < #LETTER: ["_","a"-"z","A"-"Z"] >
+}
+
+
+TOKEN :  /*IDENTIFIERS*/
+{
+    <IDENTIFIER: <LETTER> (<LETTER>|<SINGLEDIGIT>)*>
+    |
+    <QUOTED_IDENTIFIER: "\"" (~["\""])* ("\"\"" (~["\""])*)* "\"">
+}
+
+void UnreservedWords (PrintStream prn):
+{}
+{
+	<POSITION_> |
+	LOOKAHEAD(2)
+	<DATE_> |
+	<DAY_>	|
+	<QUARTER_> |
+	LOOKAHEAD(2)
+	<TIME_> |
+	LOOKAHEAD(2)
+	<TIMESTAMP_>|
+        <WITH_TIMEZONE_>|
+        <WITHOUT_TIMEZONE_>|
+        <DATETIME_>|
+        <SAMLLDATETIME_>|
+	<PASSWORD_> |
+	<AVERAGE_>	|
+	<COUNT_>	|
+	<EXTRACT_>	|
+	<MAX_>	|
+	<CURRENTDATE_>	|
+	<CURRENT_TIME_>	|
+	<CURRENT_TIMESTAMP_> |
+	<TRUNCATE_>	|
+	<USER_>	|
+	<YEAR_>	|
+	<MONTH_>	|
+	<HOUR_>	|
+	<MINUTE_>	|
+	<SECOND_>	|
+	<SUBSTRING_>	|
+//	<TEMPORARY_>	|
+    <WEEK_>	|
+	<DATABASE_>	|
+    <VERSION_>    |
+    <MIN_>    |
+    <STDDEV_>    |
+    <STDDEV_POP_>|
+    <STDDEV_SAMP_>|
+    <SUM_>    |
+    <VARIANCE_>    |
+    <VARIANCE_POP_>|
+    <VARIANCE_SAMP_>|
+    <VAR_POP_>|
+    <VAR_SAMP_>|
+//    <INDEX_>    |
+//    <SHOW_INDEXES_>    | 
+//    <LEFT_>    |
+    <REPLACE_>    |
+//    <RIGHT_>    |    
+    <TRIM_>    |
+    <FIXED_>    |
+    <CONVERT_>    |
+    <OVERLAY_>    |
+    <PLACING_>    |
+    <STORAGE_>    |
+    <TYPE_>    |
+    <CLOCK_TIMESTAMP_>|
+    <STATEMENT_TIMESTAMP_>|
+    <TRANSACTION_TIMESTAMP_>|
+    <SMALLINT_>|
+    <TINYINT_>|
+    <INT2_>|
+    <BYTEA_>|
+    <BIGINT_>|
+    <INT8_> |
+    <BIGINTEGER_> |
+    <INT_> |
+    <INTEGER_> |
+    <INT4_> |
+    <REAL_> |
+    <SMALLFLOAT_>|
+    <FLOAT_> |
+    <FLOAT4_>|
+    <FLOAT8_>|
+    <DECIMAL_> |
+    <NUMERIC_> |
+    <SMALLMONEY_>|
+    <MONEY_>|
+    <NUMBER_>|
+    <CHAR_> |
+    <CHARACHTER_> |
+    <VARCHAR_> |
+    <TINYTEXT_>|
+    <VARCHAR2_>|
+    <DATE_> |
+    <TIME_> |
+    <TIMESTAMP_> |
+    <DEC_> |
+    <DOUBLE_PRECISION_> |
+    <NCHAR_> |
+    <NATIONAL_> |
+    <VARYING_> |
+    <BOOLEAN_> |
+    <INTERVAL_>|
+    <TEXT_>|  
+    <MEDIUMTEXT_>|
+    <LVARCHAR_>|
+    <LONGTEXT_>|
+    <LONG_VARCHAR_>|
+    <LONG_>|
+    <CLOB_>|
+    <BLOB_>|
+    <BINARY_>|
+    <VARBINARY_>|
+    <RAW_>|
+    <LONG_RAW_>|
+    <IMAGE_>|
+    <BYTE_>|
+    <CLUSTER_>|
+	<CURRENT_USER_>|
+    <NULLIF_>|
+    <CURRENT_DATABASE_>|    
+    <CURRENT_SCHEMA_>|
+    <BIT_AND_>|
+    <BIT_OR_>|
+    <BOOL_AND_>|
+    <BOOL_OR_>|
+    <EVERY_>|
+    <CORR_>|    
+    <COVAR_POP_>| 
+    <COVAR_SAMP_>|
+    <REGR_AVGX_>|
+    <REGR_AVGY_>|
+    <REGR_COUNT_>|
+    <REGR_INTERCEPT_>|
+    <REGR_R2_>|
+    <REGR_SLOPE_>|
+    <REGR_SXX_>|
+    <REGR_SXY_>|
+    <REGR_SYY_>|
+    <GEOMETRY_>|
+    <BOX2D_>|
+    <BOX3D_>|
+    <BOX3DEXTENT_>|
+    <REGCLASS_>
+| <ASBINARY_>
+| <ADDGEOMETRYCOLUMN_>
+| <PERIMETER2D_>
+| <PERIMETER3D_>
+| <SPATIAL_>
+| <PORT_>
+| <ONLY_>
+| <WITH_>  
+}
+void Identifier(PrintStream prn):
+{}
+{
+	<IDENTIFIER> | <QUOTED_IDENTIFIER> | UnreservedWords (prn)
+}
+
+void  process(PrintStream prn):
+{}
+{
+    (
+    VacuumDatabase(prn) [<SEMICOLON_>]
+    |
+    AnalyzeDatabase(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(3)
+    createTable(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(3)
+    CreateTablespace(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(3)
+    createIndex(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(3)
+    dropTable(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(3)
+    DropTablespace(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(4)
+    SelectAddGeometryColumn(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(4)
+    SelectWithParenthesis(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(4)
+    WithSelect(prn) [<SEMICOLON_>]
+    |
+    InsertTable(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(<UPDATE_> TableName(prn) <SET_> )
+    UpdateTable(prn) [<SEMICOLON_>]
+    |
+    Delete(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(2)
+    Alter(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(2)
+    DropIndex(prn) [<SEMICOLON_>]
+    |
+    RenameTable(prn) [<SEMICOLON_>]
+    |
+    UpdateStats(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(2)
+    ShowAgents() [<SEMICOLON_>]
+    |
+    LOOKAHEAD(2)
+    ShowCluster() [<SEMICOLON_>]
+    |
+    LOOKAHEAD(2)
+    ShowDatabases() [<SEMICOLON_>]
+    |
+    LOOKAHEAD(2)
+    ShowStatements() [<SEMICOLON_>]
+    |
+    LOOKAHEAD(2)
+    ShowTables() [<SEMICOLON_>] 
+     |
+    LOOKAHEAD(2)
+    ShowTranIsolation() [<SEMICOLON_>] 
+    |
+    BeginTransaction() [<SEMICOLON_>] 
+    |
+    CommitTransaction() [<SEMICOLON_>] 
+    |
+    RollbackTransaction() [<SEMICOLON_>] 
+    |
+    DescribeTable(prn) [<SEMICOLON_>] 
+    |
+    LOOKAHEAD(2)
+    ShowConstraints(prn) [<SEMICOLON_>] 
+    |
+    LOOKAHEAD(2)
+    ShowIndexes(prn) [<SEMICOLON_>] 
+    |
+    LOOKAHEAD(3)
+    Deallocate(prn)  [<SEMICOLON_>] 
+    |
+    LOOKAHEAD(3)
+    CreateUser(prn)  [<SEMICOLON_>] 
+    |
+    LOOKAHEAD(3)
+    DropUser(prn)  [<SEMICOLON_>] 
+    |
+    LOOKAHEAD(3) 
+    AlterUser(prn)  [<SEMICOLON_>] 
+    |
+    Grant(prn) [<SEMICOLON_>] 
+    |
+    Revoke(prn) [<SEMICOLON_>] 
+    |
+    createView(prn) [<SEMICOLON_>] 
+    |
+    DropView(prn) [<SEMICOLON_>] 
+    |
+    LOOKAHEAD(2)
+    ShowUsers(prn) [<SEMICOLON_>] 
+    |
+    LOOKAHEAD(2)
+    ShowViews(prn) [<SEMICOLON_>] 
+    |
+    Cluster(prn) [<SEMICOLON_>] 
+    |
+    Truncate(prn) [<SEMICOLON_>] 
+    |
+    ExecDirect(prn) [<SEMICOLON_>] 
+    |
+    Explain(prn) [<SEMICOLON_>] 
+    |
+    LOOKAHEAD(2)
+    SetProperty(prn) [<SEMICOLON_>]
+    |
+    LOOKAHEAD(2)
+    ShowProperty(prn) [<SEMICOLON_>]
+    |
+    AddNodeToDB(prn) [<SEMICOLON_>]
+    |
+    DropNodeFromDB(prn) [<SEMICOLON_>]
+    |
+    StartDatabase(prn) [<SEMICOLON_>]    
+    |
+    StopDatabase(prn) [<SEMICOLON_>]    
+    |
+    ShutdownXDB(prn) [<SEMICOLON_>]    
+    |
+    CreateDatabase(prn) [<SEMICOLON_>]    
+    |
+    DropDatabase(prn) [<SEMICOLON_>]
+    |
+    CopyData(prn) [<SEMICOLON_>]
+    |
+    Kill(prn) [<SEMICOLON_>] 
+    |
+    Unlisten(prn) [<SEMICOLON_>]
+    |
+    DeclareCursor(prn) [<SEMICOLON_>]
+    |
+    CloseCursor(prn) [<SEMICOLON_>]
+    |
+    FetchCursor(prn) [<SEMICOLON_>]
+    |
+    AlterCluster(prn) [<SEMICOLON_>]
+    ) <EOF>
+}
+
+void CopyData(PrintStream prn):
+{}
+{
+    <COPY_>
+    (
+        TableName(prn) [ColumnNameListWithParenthesis(prn)]
+        |
+        <PARENTHESIS_START_> Select(prn) <PARENTHESIS_CLOSE_>
+    )
+    (
+        <FROM_> 
+        (<STDIN_> | <STRING_LITERAL>)
+        | 
+        <TO_> 
+        (<STDOUT_> | <STRING_LITERAL>)
+    )
+	[
+		[<WITH_>]
+		(
+			FormatDefOIDS(prn) |
+			FormatDefDelimiter(prn) |
+			FormatDefNull(prn) |
+			FormatDefCSV(prn)
+		)+
+	]
+}
+
+void FormatDefOIDS(PrintStream prn):
+{}
+{
+	<OIDS_>
+}
+
+void FormatDefDelimiter(PrintStream prn):
+{}
+{
+	<DELIMITER_> [ <AS_> ] <STRING_LITERAL>
+}
+
+void FormatDefNull(PrintStream prn):
+{}
+{
+	<NULL_> [ <AS_> ] <STRING_LITERAL>
+}
+
+void FormatDefCSV(PrintStream prn):
+{}
+{
+	<CSV_> 
+	(
+	    <QUOTE_STRING_> [ <AS_> ] <STRING_LITERAL> |
+	    <ESCAPE_> [ <AS_> ] <STRING_LITERAL> |
+	    <FORCE_QUOTE_> ColumnNameList(prn) |
+	    <FORCE_NOT_NULL_> ColumnNameList(prn)
+    )*
+}
+
+void AddNodeToDB(PrintStream prn):
+{}
+{
+    <ADD_NODE_> <INT_LITERAL> ("," <INT_LITERAL>)* [<MANUAL_>]
+}
+
+void DropNodeFromDB(PrintStream prn):
+{}
+{
+    <DROP_NODE_> <INT_LITERAL> ("," <INT_LITERAL>)* [<FORCE_>]
+}
+
+void StartDatabase(PrintStream prn):
+{}
+{
+    <START_DB_> Identifier(prn) ("," Identifier(prn))* [<WAIT_TIMEOUT_><INT_LITERAL>]
+}
+
+void StopDatabase(PrintStream prn):
+{}
+{    
+    <STOP_DB_> Identifier(prn) ("," Identifier(prn))*
+}
+
+void ShutdownXDB(PrintStream prn):
+{}
+{    
+    <SHUT_DOWN_> [<FORCE_>]
+}
+
+void CreateDatabase(PrintStream prn):
+{}
+{    
+    <CREATE_DB_> Identifier(prn) [ [<WITH_>] (<OWNER_> ["="] Identifier(prn)| <SPATIAL_>)+ ] 
+    [ <MANUAL_> ]
+    <ON_> (<NODE_> | <NODES_>) <INT_LITERAL> ("," <INT_LITERAL>)*    
+}
+
+void DropDatabase(PrintStream prn):
+{}
+{    
+    <DROP_DB_> Identifier(prn) [<FORCE_>] 
+}
+
+void CreateNode(PrintStream prn):
+{}  
+{    
+    <CREATE_NODE_> <FOR_> Identifier(prn) 
+      [ [<WITH_>] 
+          (FormatDefPort(prn)| 
+           FormatDefUser(prn)|
+           FormatDefPassword(prn))+ 
+      ] 
+}
+
+void FormatDefPort(PrintStream prn):
+{}
+{
+  <PORT_> ["="] <INT_LITERAL>
+}
+
+void FormatDefUser(PrintStream prn):
+{}
+{
+  <USER_> ["="] Identifier(prn)
+}
+
+void FormatDefPassword(PrintStream prn):
+{}
+{
+  <PASSWORD_> ["="] Identifier(prn)
+}
+
+void ExecDirect(PrintStream prn):
+{}
+{
+	<EXEC_> <DIRECT_> <ON_> 
+	(
+	    <ALL_>
+		|
+		(<NODE_> | <NODES_>) <INT_LITERAL> ("," <INT_LITERAL>)*
+	)
+	<STRING_LITERAL>
+}
+void Explain(PrintStream prn):
+{}
+{
+	<EXPLAIN_> [<VERBOSE_>] (Select(prn) | WithSelect(prn))
+}
+void VacuumDatabase(PrintStream prn):
+{}
+{
+	<VACUUM_> [ <FULL_> | <FREEZE_> ] [ TableName(prn) | AnalyzeDatabase(prn) ]  
+}
+void AnalyzeDatabase(PrintStream prn):
+{}
+{
+	<ANALYZE_> [ TableName(prn)  [ <PARENTHESIS_START_>ColumnNameList(prn)<PARENTHESIS_CLOSE_> ] ]
+}
+
+void CreateTablespace(PrintStream prn):
+{}
+{
+    <CREATE_> <TABLESPACE_> Identifier(prn)
+	TablespaceLocation(prn) ("," TablespaceLocation(prn))*
+}
+void DropTablespace(PrintStream prn):
+{}
+{
+    <DROP_> <TABLESPACE_> Identifier(prn)
+}
+
+void TablespaceLocation(PrintStream prn):
+{}
+{
+	<LOCATION_> stringLiteral(prn) <ON_> 
+	(
+		<ALL_>
+		|
+		(<NODE_> | <NODES_>) <INT_LITERAL> (LOOKAHEAD(2) "," <INT_LITERAL>)*
+	)
+}
+
+void UpdateStats(PrintStream prn):
+{}
+{
+    	<UPDATE_STAT_>
+                (
+	                <COLUMN_>
+                    (
+                        LOOKAHEAD(2)
+                        <PARENTHESIS_START_> <STAR_> <PARENTHESIS_CLOSE_>
+                        |
+                        <PARENTHESIS_START_> ColumnNameList(prn) <PARENTHESIS_CLOSE_>
+                    )
+                    <FOR_> TableName(prn)
+    	            |
+        	        TableName(prn)
+            	    |
+                	<STAR_>
+                )
+}
+void RenameTable(PrintStream prn):
+{}
+{
+	<RENAME_> <TABLE_> TableName(prn) <TO_> TableName(prn)
+}
+//ok
+void DropIndex (PrintStream prn):
+{}
+{
+	<DROP_> <INDEX_> Identifier(prn) [<ON_> TableName(prn)]
+}
+void Alter(PrintStream prn):
+{}
+{  <ALTER_>
+	(
+	AlterTable(prn)
+	|
+	AlterTableSpace(prn)
+	)
+}
+void AlterTableSpace(PrintStream prn):
+{}
+{
+	<TABLESPACE_> Identifier(prn) <RENAME_> <TO_> Identifier(prn)
+}
+
+void AlterTable(PrintStream prn):
+{}
+{
+	<TABLE_> TableName(prn)
+			AlterTableActon(prn) ("," AlterTableActon(prn))*
+}
+void AlterTableActon(PrintStream prn):
+{}
+{
+		AddDef(prn) 
+		|
+		DropDef(prn) 
+		|
+		AlterDef(prn) 
+		|
+		RenameDef(prn) 
+		|
+		OwnerDef(prn)
+		|
+		SetTablespace(prn) 
+        |
+        Inherit(prn)
+}
+void Inherit(PrintStream prn) :
+{}
+{
+ [<NO_>] <INHERIT_> TableName(prn)
+}
+
+void SetTablespace(PrintStream prn) :
+{}
+{
+ <SET_> <TABLESPACE_> Identifier(prn)
+}
+
+void SetProperty(PrintStream prn) :
+{}
+{
+    <SET_> 
+    (
+        Identifier(prn) [<TO_> | "="] (<STRING_LITERAL> | Identifier(prn) | <ON_> | <TRUE_> | <FALSE_> | <INT_LITERAL> | <DECIMAL_LITERAL> | <ESCAPE_>)
+        |
+        <TRANSACTION_> <ISOLATION_LEVEL_> IsolationLevel(prn)
+    )
+}
+
+void IsolationLevel(PrintStream prn) :
+{}
+{
+    ( <SERIALIZABLE_> | <REPEATABLE_READ_> | <READ_COMMITTED_> | <READ_UNCOMMITTED_> )
+}
+
+void ShowProperty(PrintStream prn) :
+{}
+{
+    <SHOW_> (<IDENTIFIER> | <ALL_> | <QUOTED_IDENTIFIER>)
+}
+
+void OwnerDef(PrintStream prn) :
+{}
+{
+ <OWNER_TO_> (<PUBLIC_> | Identifier(prn) )
+}
+
+void Constraint(PrintStream prn):
+{}
+{
+	<CONSTRAINT_> Identifier(prn)
+}
+
+void AddDef(PrintStream prn):
+{}
+{
+		<ADD_>
+		(
+			[<COLUMN_>] ColumnDeclare(prn) [<FIRST_> | <AFTER_> Identifier(prn) ]
+		|
+			[Constraint(prn)]
+			(
+			PrimaryKeyDef(prn)			|	
+			ForeignKeyDef(prn)			|	
+			CheckDef(prn)
+           	)
+		)
+}
+//ok
+void DropDef(PrintStream prn):
+{}
+{
+	<DROP_>
+		(
+		 [<COLUMN_>]  Identifier(prn)
+		 |
+		 Constraint(prn)
+		 |
+		 <PRIMARYKEY_>
+		)
+}
+
+void RenameDef(PrintStream prn):
+{}
+{
+	 <RENAME_> [<COLUMN_>] Identifier(prn) <TO_> Identifier(prn)
+}
+
+void AlterDef(PrintStream prn):
+{}
+{
+	 (<MODIFY_>|<ALTER_>) [<COLUMN_>] AlterDefOperation(prn)
+}
+void AlterDefOperation(PrintStream prn):
+{}
+{
+	Identifier(prn)  (AlterDefOperationType(prn)
+					 | AlterDefOperationSet(prn)
+				  	 | DropDefaultNotNull(prn))
+}
+void AlterDefOperationType(PrintStream prn):
+{}
+{ 
+	<TYPE_> types() [<USING_> (<STRING_LITERAL>
+						| <NULL_>
+				        | <DATE_>
+						| <TIME_>
+						| <TIMESTAMP_>
+						| <INT_LITERAL>
+						| <DECIMAL_LITERAL>
+						| LOOKAHEAD(2)IntervalLiterals(prn))]
+}
+
+void AlterDefOperationSet(PrintStream prn):
+{}
+{
+		<SET_> (DefaultSpec(prn)	 
+					| <NOT_> <NULL_>
+		  			| <STATISTICS_> <INT_LITERAL> 
+		  			| <STORAGE_>)
+
+}
+void DropDefaultNotNull(PrintStream prn):
+{}
+{
+	<DROP_> (<DEFAULT_> | <NOT_> <NULL_>)
+}
+
+
+void Delete(PrintStream prn):
+{}
+{
+	<DELETE_> <FROM_> TableName(prn)  [WhereClause(prn)]
+}
+
+void UpdateTable(PrintStream prn):
+{}
+{
+	<UPDATE_> TableName(prn) <SET_> SetUpdateClause(prn)("," SetUpdateClause(prn) )* [WhereClause(prn)]
+}
+//ok
+void SetUpdateClause(PrintStream prn):
+{}
+{
+	[LOOKAHEAD(2) TableName(prn) "."] Identifier(prn) "="  SQLSimpleExpression(prn)
+}
+//ok
+void createIndex(PrintStream prn):
+{}
+{
+	<CREATE_>
+	[<UNIQUE_>]
+	<INDEX_>
+	Identifier(prn)
+	<ON_>
+	TableName(prn)
+	[<USING_> Identifier(prn)]
+	<PARENTHESIS_START_>
+	columnListIndexSpec(prn)
+	<PARENTHESIS_CLOSE_>
+	[tablespaceDef(prn)]
+	[WhereClause(prn)]
+	
+	
+	/*
+	CREATE [UNIQUE] INDEX index_name 
+
+   ON table_name [USING index_type] 
+
+   (column_name [[ASC|DESC|<IDENTIFIER_NAME>],... )
+
+         [TABLESPACE tablespace]
+         [WHERE predicate]
+	
+	*/
+	
+	
+}
+//ok
+void  columnListIndexSpec(PrintStream prn):
+{}
+{
+	( Identifier(prn) | <PARENTHESIS_START_> SQLSimpleExpression(prn) <PARENTHESIS_CLOSE_> ) [<ASC_>| <DESC_>|Identifier(prn)] 
+	("," ( Identifier(prn) | <PARENTHESIS_START_> SQLSimpleExpression(prn) <PARENTHESIS_CLOSE_> ) [<ASC_>|<DESC_>|Identifier(prn)])*
+}
+
+void createTable(PrintStream prn):{}
+{
+    <CREATE_>
+    [[<LOCAL_>|<GLOBAL_>] (<TEMP_> | <TEMPORARY_>)]
+    <TABLE_>
+    TableName(prn)
+    (
+	    LOOKAHEAD(3)
+	    <PARENTHESIS_START_> CreateDefinition(prn) (","CreateDefinition(prn))* <PARENTHESIS_CLOSE_>
+	    [PartitionDeclare(prn)]
+	    [inheritsDef(prn)]
+	    [WithXRowID(prn)]
+	    [OnCommitClause(prn)]
+	    [tablespaceDef(prn)]
+	|
+	    LOOKAHEAD(2)
+	    [<PARENTHESIS_START_> ColumnNameList(prn) <PARENTHESIS_CLOSE_>]
+	    [PartitionDeclare(prn)]
+        [WithXRowID(prn)]
+	    [OnCommitClause(prn)]
+	    [tablespaceDef(prn)]
+	    <AS_>
+	    SelectWithoutOrderAndSet(prn)
+	) 
+}
+
+void OnCommitClause(PrintStream prn):{}
+{
+	<ON_COMMIT_> ( <PRESERVE_ROWS_> | <DELETE_ROWS_> | <DROP_> ) 
+}
+
+void WithXRowID(PrintStream prn):{}
+{
+	<WITH_XROWID_> | <WITHOUT_XROWID_>
+}
+
+void tablespaceDef(PrintStream prn):{}
+{
+	<TABLESPACE_> Identifier(prn)
+}
+ 
+void inheritsDef(PrintStream prn):{}
+{
+	<INHERITS_> <PARENTHESIS_START_> TableName(prn) ("," TableName(prn))* <PARENTHESIS_CLOSE_>
+}
+	
+void createView(PrintStream prn):{}
+{
+    (<CREATE_>|<REPLACE_>)
+    <VIEW_>
+    TableName(prn)
+	[ColumnNameListWithParenthesis(prn)]
+    <AS_>
+	SelectWithoutOrder(prn)
+}
+void ColumnNameListWithParenthesis(PrintStream prn):{}
+{
+	<PARENTHESIS_START_> ColumnNameList(prn) <PARENTHESIS_CLOSE_>
+}
+void DropView(PrintStream prn):{}
+{
+    <DROP_>
+    <VIEW_>
+    TableName(prn)
+}
+
+void dropTable(PrintStream prn):{}
+{
+    	<DROP_>
+    	<TABLE_>
+    	TableName(prn) ("," TableName(prn))*
+}
+
+void InsertTable(PrintStream prn):
+{}
+{
+	<INSERT_> [<INTO_>] TableName(prn)  [LOOKAHEAD (<PARENTHESIS_START_> ColumnNameList(prn)) <PARENTHESIS_START_>ColumnNameList(prn)<PARENTHESIS_CLOSE_>]
+
+	(
+	    <VALUES_>  <PARENTHESIS_START_>SQLExpressionList(prn) <PARENTHESIS_CLOSE_>
+	|
+/*	    <PARENTHESIS_START_> SelectWithoutOrder(prn) <PARENTHESIS_CLOSE_>
+        | 
+            SelectWithoutOrder(prn) */
+            SelectWithoutOrderWithParenthesis(prn)
+	)
+}
+
+void PrimaryKeyDef (PrintStream prn) : {}
+{
+	
+	<PRIMARYKEY_> <PARENTHESIS_START_> ColumnNameList(prn) <PARENTHESIS_CLOSE_>
+}
+
+void CheckDef (PrintStream prn) : {}
+{
+	<CHECK_>  <PARENTHESIS_START_> SQLComplexExpression(prn) <PARENTHESIS_CLOSE_>
+  
+//	<CHECK_>  <PARENTHESIS_START_> skip_to_matching_brace(prn) <PARENTHESIS_CLOSE_>
+//	<CHECK_WITH_PARAM_>
+//	<CHECK_WITH_PARAM_: <CHECK_> (" ")* <PARENTHESIS_START_>  (~[])*     <PARENTHESIS_CLOSE_> 	>  
+
+}
+
+void CreateDefinition(PrintStream prn):
+{}
+{
+			ColumnDeclare(prn)  
+			|
+			[Constraint(prn)]
+			(
+			PrimaryKeyDef(prn)
+			|
+			ForeignKeyDef(prn)
+			|
+			CheckDef(prn)
+			)
+			
+}
+//ok
+void ColumnDeclare(PrintStream prn):
+{}
+{
+	Identifier(prn)
+	types()
+        [<NOT_> <NULL_> | <NULL_>] [DefaultSpec(prn) ]
+	[<PRIMARYKEY_>] 
+	[ CheckDef(prn) ]
+
+}
+//ok
+void ForeignKeyDef(PrintStream prn):{}
+{
+	 <FOREIGNKEY_> <PARENTHESIS_START_> ColumnNameList(prn) <PARENTHESIS_CLOSE_>  
+	 <REFERENCES_> TableName(prn) <PARENTHESIS_START_> ColumnNameList(prn) <PARENTHESIS_CLOSE_>
+}
+
+/*
+	Default Date - Will provide you with setting up the current time.
+	Default TIME - Will get the current time and then Insert it into
+*/
+void DefaultSpec(PrintStream prn):
+{}
+{
+	<DEFAULT_> SQLSimpleExpression(prn)
+}
+
+void PartitionDeclare(PrintStream prn) :
+{}
+{
+	<PARTITIONINGKEY_> [Identifier(prn)] <ON_> PartitionChoice(prn)
+	|
+	<PARTITION_WITH_> <PARENT_>
+	|
+	<REPLICATED_>
+	|
+	<ON_> (<NODE_> | <NODES_>) <INT_LITERAL>
+	|
+	<ROUND_ROBIN_> <ON_> PartitionChoice(prn)
+}
+
+void  PartitionChoice(PrintStream prn):
+{}
+{
+				<ALL_>
+				|
+				(<NODE_> | <NODES_>)  NodePartitionList(prn) 
+
+}
+void NodePartitionList(PrintStream prn):
+{}
+{
+	<INT_LITERAL> (	LOOKAHEAD(2) "," <INT_LITERAL>)+
+}
+
+void types():
+{}
+{
+		IntegerDataType()
+	|
+		SmallIntDataType()
+	|
+                LOOKAHEAD(2)
+ 		RealDataType()
+	|
+		DoublePrecision()
+	|
+		FloatDataType()
+	|
+                LOOKAHEAD(2)
+		DecimalDataType()                	            
+        |
+		NumericDataType()
+	|
+		FixedDataType()
+	|
+		CharachterDataType()
+	|
+		VarCharDataType()
+	|
+		DateDataType()
+	|
+		TimeDataType()
+	|
+		TimeStampDataType()
+	|
+		BooleanDataType()
+	|
+		NationalCharDataType()
+	|
+		SerialDataType()
+	|
+		BigSerialDataType()
+	|
+	    BigIntDataType()
+	|  
+		IntervalDataType()	    
+	|  
+		TextDataType()	    
+	|  
+		BLOBDataType()	    
+	|  
+		BitDataType()	    
+	|  
+		VarBitDataType()	    
+        |
+                MacAddrDataType()
+        |
+                CidrDataType()
+        |
+                InetDataType()
+        |
+                GeometryDataType()
+        |
+                Box2DDataType()
+        |
+                Box3DDataType()
+        |
+                Box3DExtentDataType()		
+        |
+                RegClassDataType()		
+}
+
+/*
+ * This must be in synch with org.postgresql.stado.Parser.Handler.DataTypeHandler.INTERVAL_QUALIFIERS constant array
+ * Order is important !
+ */
+void DatetimeField():
+{}
+{
+ <YEAR_> | <QUARTER_> | <MONTH_> | <WEEK_> | <DAY_> | <HOUR_> | <MINUTE_> | <SECOND_>
+}
+void IntervalQualifier():
+{}
+{
+	DatetimeField() <TO_> DatetimeField()
+}
+void IntervalDataType():
+{}
+{
+	<INTERVAL_> [LOOKAHEAD(2)IntervalQualifier()]
+}
+void TextDataType():
+{}
+{
+	<TEXT_> | <CLOB_> | <LONG_> | <LONG_VARCHAR_> | <LONGTEXT_> | <LVARCHAR_> | <MEDIUMTEXT_>
+}
+void BLOBDataType():
+{}
+{
+	<BLOB_> | <BYTEA_> | <BYTE_> | <BINARY_> | <IMAGE_> | <LONG_RAW_> | <RAW_> | <VARBINARY_>
+}
+void BitDataType():
+{}
+{
+	<BIT_> [LengthSpec()]
+}
+void VarBitDataType():
+{}
+{
+	<VARBIT_> [LengthSpec()]
+}
+void MacAddrDataType():
+{}
+{
+	<MACADDR_>
+}
+void CidrDataType():
+{}
+{
+	<CIDR_>
+}
+void InetDataType():
+{}
+{
+	<INET_>
+}
+void GeometryDataType():
+{}
+{
+        <GEOMETRY_>
+}
+void Box2DDataType():
+{}
+{
+        <BOX2D_>
+}
+void Box3DDataType():
+{}
+{
+        <BOX3D_>
+}
+void Box3DExtentDataType():
+{}
+{
+        <BOX3DEXTENT_>
+}
+void RegClassDataType():
+{}
+{
+        <REGCLASS_>
+}
+void BooleanDataType():
+{}
+{
+	<BOOLEAN_>
+}
+void  SmallIntDataType():
+{}
+{
+    (<SMALLINT_>|<INT2_>) [<SERIAL_>] UnsignedZeroFillSpecs()
+    |
+    <TINYINT_>
+}
+void  BigIntDataType():
+{}
+{
+    (<BIGINT_>|<BIGINTEGER_>|<INT8_>) [<SERIAL_>] UnsignedZeroFillSpecs()
+}
+
+void SerialDataType():
+{}
+{
+	<SERIAL_>
+}
+void BigSerialDataType():
+{}
+{
+	<BIGSERIAL_>
+}
+
+void RealDataType() :
+{}
+{
+	(<REAL_> | <SMALLFLOAT_> | <FLOAT4_>) UnsignedZeroFillSpecs()
+}
+void IntegerDataType():
+{}
+{
+	( <INT_> | <INTEGER_> | <INT4_> ) [<SERIAL_>] UnsignedZeroFillSpecs()
+}
+void FloatDataType():
+{}
+{
+	<FLOAT_> [LengthSpec()] UnsignedZeroFillSpecs()       
+        
+}
+void TimeStampDataType():
+{}
+{
+	<TIMESTAMP_> [LengthSpec()] [LOOKAHEAD(2)(<WITH_TIMEZONE_> | <WITHOUT_TIMEZONE_>)]
+        |
+        <DATETIME_>
+        |
+        <SAMLLDATETIME_>
+}
+void TimeDataType() :
+{}
+{
+	<TIME_> [LengthSpec()] [LOOKAHEAD(2)(<WITH_TIMEZONE_> | <WITHOUT_TIMEZONE_>)]
+}
+
+void DateDataType() :
+{}
+{
+	<DATE_>
+}
+void VarCharDataType() :
+{}
+{
+	(<VARCHAR_> | <VARCHAR2_>) [LengthSpec()]
+        |
+        <TINYTEXT_>
+}
+void NumericDataType() :
+{}
+{
+        LOOKAHEAD(2)
+	(<NUMERIC_> | <NUMBER_>)[PrecisionSpec()] UnsignedZeroFillSpecs()        
+        |        
+        <MONEY_> | <SMALLMONEY_> | <YEAR_>         
+}
+
+void DecimalDataType():
+{}
+{
+	(<DECIMAL_>	| <DEC_>) [PrecisionSpec()] UnsignedZeroFillSpecs()
+}
+void FixedDataType():
+{}
+{
+	<FIXED_> PrecisionSpec() UnsignedZeroFillSpecs()
+}
+void NationalCharDataType():
+{}
+{
+	(
+	<NCHAR_>
+	|
+	<NATIONAL_> ( <CHAR_> | <CHARACHTER_> )
+	)
+	[LOOKAHEAD(2)<VARYING_>]
+	[LengthSpec()]
+}
+void DoublePrecision():
+{}
+{
+	<DOUBLE_PRECISION_>
+        |
+        <FLOAT8_>
+}
+void CharachterDataType() :
+{}
+{
+	(<CHARACHTER_> | <CHAR_>) [LOOKAHEAD(2)<VARYING_>] [LengthSpec()]
+}
+
+void LengthSpec() :
+{}
+{
+ 	<PARENTHESIS_START_> <INT_LITERAL> <PARENTHESIS_CLOSE_>
+}
+void UnsignedZeroFillSpecs():
+{}
+{
+	[<UNSIGNED_>] [<ZEROFILL_>]
+}
+void PrecisionSpec() :
+{}
+{
+    <PARENTHESIS_START_> <INT_LITERAL> ["," <INT_LITERAL>] <PARENTHESIS_CLOSE_>
+}
+
+/********************************************************************************************
+	The Select Statement Parsing starts here  The Production Rules for Select are as
+	follows
+
+	Select ---> SelectWithoutOrder OrderByClause
+	SelectWithoutOrder --> SelectWithOutOrderAndSet
+
+
+
+*********************************************************************************************/
+void SelectAddGeometryColumn(PrintStream prn): {} 
+{
+  <SELECT_>
+  <ADDGEOMETRYCOLUMN_>
+    <PARENTHESIS_START_> 
+      SQLArgument(prn) "," 
+      SQLArgument(prn) "," 
+      SQLArgument(prn) "," 
+      SQLArgument(prn) "," 
+      SQLArgument(prn) 
+      [LOOKAHEAD(3) "," SQLArgument(prn)] ["," SQLArgument(prn)]
+    <PARENTHESIS_CLOSE_> 
+}
+
+void SelectWithParenthesis(PrintStream prn) : {}
+{
+//    LOOKAHEAD(2)
+	Select(prn)
+//	|
+//	<PARENTHESIS_START_> SelectWithParenthesis (prn) <PARENTHESIS_CLOSE_>
+}
+void Select(PrintStream prn) : {}
+{
+    SelectWithoutOrderWithParenthesis(prn)
+    [ OrderByClause(prn) ]
+    [ LimitClause(prn) ]
+    [ OffsetClause(prn) ]
+}
+void SelectWithoutOrderWithParenthesis(PrintStream prn):
+{}
+{
+//	LOOKAHEAD(3)
+//	<PARENTHESIS_START_> SelectWithoutOrderWithParenthesis(prn) <PARENTHESIS_CLOSE_>
+//	|
+	SelectWithoutOrder(prn)
+}
+void SelectWithoutOrder(PrintStream prn):
+{}
+{
+	SelectWithoutOrderAndSetWithParenthesis(prn)
+		( <UNION_> [<ALL_>]( SelectWithoutOrderAndSet(prn)  
+		| UnionSpec(prn) ))*
+}
+void SelectWithoutOrderAndSetWithParenthesis(PrintStream prn):
+{}
+{
+//    LOOKAHEAD(4)
+	SelectWithoutOrderAndSet(prn) |
+   <PARENTHESIS_START_> SelectWithoutOrderAndSetWithParenthesis(prn) <PARENTHESIS_CLOSE_>
+}
+void UnionSpec(PrintStream prn):
+{}
+{
+//    LOOKAHEAD(3)
+	<PARENTHESIS_START_>SelectWithoutOrder(prn) <PARENTHESIS_CLOSE_>
+}
+
+/****************************************************************
+Expansion For With List
+******************************************************************/
+void WithList(PrintStream prn):
+{}
+{
+	WithDef(prn) ("," WithDef(prn))*
+}
+
+void WithDef(PrintStream prn):
+{}
+{
+    /*Identifier(prn) <AS_> SelectWithoutOrderAndSetWithParenthesis(prn)*/
+    Identifier(prn) [ColumnNameListWithParenthesis(prn)] 
+        <AS_> <PARENTHESIS_START_> SelectWithoutOrder(prn) <PARENTHESIS_CLOSE_>
+}
+
+void WithSelect(PrintStream prn):
+{}
+{
+    <WITH_> WithList(prn) Select(prn)
+}
+
+
+void SelectWithoutOrderAndSet(PrintStream prn):
+{}
+{
+     <SELECT_>
+     [
+		 <ALL_>
+      | <DISTINCT_>
+      | <UNIQUE_>
+     ]
+    SelectList(prn)
+    [IntoClause(prn)]
+    [FromClause(prn)]
+    [WhereClause(prn)]
+    [GroupByClause(prn)]
+    [HavingClause(prn)]
+}
+
+/****************************************************************
+Expansion For Select List Starts
+******************************************************************/
+void SelectList(PrintStream prn):
+{}
+{
+	SelectTupleSpec(prn) (
+	"," SelectTupleSpec(prn)
+	)*
+}
+
+void SelectTupleSpec(PrintStream prn):
+{}
+{
+  (
+
+	<STAR_>
+	|
+	LOOKAHEAD(TableName(prn)"."<STAR_>)
+	TableName(prn)"."<STAR_>/*TableName.**/
+	|
+//	(
+		SQLSimpleExpression(prn)
+//	)
+	[
+    LOOKAHEAD(2)
+	SelectAliasSpec(prn)
+	]/* Takes Care of the alias name  and expression*/
+  )
+}
+
+/********************
+ * Expression of the form A+B -C * ( B + C)
+ * Please read comments in SqlExpressionHandler if you are going to modify these
+ ********************/
+void SQLSimpleExpression(PrintStream prn):
+{}
+{
+	SQLPrecedenceLevel1Expression(prn)
+
+	(
+        LOOKAHEAD(2)
+        SQLPrecedenceLevel1Operand(prn)
+    )*
+}
+void SQLPrecedenceLevel1Expression(PrintStream prn):
+{}
+{
+	SQLPrecedenceLevel2Expression(prn)
+
+	(
+        LOOKAHEAD(2)
+        SQLPrecedenceLevel2Operand(prn)
+    )*
+}
+void SQLPrecedenceLevel1Operand(PrintStream prn):
+{}
+{
+    (
+      <CONTAINED_WITHIN_OR_EQUALS_>
+      |
+      <CONTAINS_OR_EQUALS_>
+	  |
+	  <GREATER_>
+	  |
+	  <GREATER_EQUALS_>
+	  |
+	  <LESS_>
+	  |
+	  <LESS_EQUALS_>
+	  |
+	  <EQUALS_>
+	  |
+	  <NOT_EQUALS_>
+	  |
+	  <NOT_EQUALS_2_>
+	  |
+	  <GIS_OVERLAPS_>
+	  |
+	  <GIS_OVERLAPS_RIGHT_>
+	  |
+	  <GIS_OVERLAPS_LEFT_>
+	  |
+	  <GIS_OVERLAPS_BELOW_>
+	  |
+	  <GIS_OVERLAPS_ABOVE_>
+	  |
+	  <GIS_SAME_>
+	  |
+	  <GIS_STRICT_BELOW_>
+	  |
+	  <GIS_STRICT_ABOVE_>
+	  |
+	  <NOT_BITWISE_>
+      |
+      <ABSOLUTE_>
+    )
+    SQLPrecedenceLevel1Expression(prn)
+}
+void SQLPrecedenceLevel2Expression(PrintStream prn):
+{}
+{
+	SQLPrecedenceLevel3Expression(prn)
+
+	(
+        LOOKAHEAD(2)
+        SQLPrecedenceLevel3Operand(prn)
+    )*
+}
+void SQLPrecedenceLevel2Operand(PrintStream prn):
+{}
+{
+    (
+      <PLUS_>
+      |
+      <MINUS_>
+      |
+      <CONCAT_>
+    )
+    SQLPrecedenceLevel2Expression(prn)
+}
+void SQLPrecedenceLevel3Expression(PrintStream prn):
+{}
+{
+	SQLPrimaryExpression(prn)
+}
+void SQLPrecedenceLevel3Operand(PrintStream prn):
+{}
+{
+    (
+  	  <STAR_>
+	  |
+	  <DIVIDE_>
+	  |
+	  <MODULO_>
+      |
+      <AND_BITWISE_>
+      |
+      <OR_BITWISE_>
+      |
+      <XOR_BITWISE_>
+      |
+      <SHIFT_LEFT_BITWISE_>
+      |
+      <SHIFT_RIGHT_BITWISE_>
+    )
+    SQLPrecedenceLevel3Expression(prn)
+}
+
+void SQLPrimaryExpression(PrintStream prn):
+{}
+{
+	/*
+	This will break into + / - |/ ||/ or !! none (???)
+	FunctionCall or TableColumn or PseudoColumn or numberValue or Charachter Vaule
+	But the char vaule should not be preceded by
+	*/
+        [<SQUARE_ROOT_> | <CUBE_ROOT_> | <FACTORIAL_PREFIX_> | <ABSOLUTE_> | <NOT_BITWISE_>] [<PLUS_> | <MINUS_> ]	
+	(
+
+                LOOKAHEAD(2)
+		FunctionCall(prn)/*Function Call */
+
+		|
+		LOOKAHEAD(2)
+		TableColumn(prn)/*Table.column*/
+		|
+		LOOKAHEAD(2)
+		PseudoColumn(prn)
+		|
+		numberValue(prn)/*A Contsant Number */
+		 |
+		 LOOKAHEAD(2)
+		<PARENTHESIS_START_> SQLComplexExpression(prn) <PARENTHESIS_CLOSE_>
+		|
+		booleanLiteral(prn)
+		|
+		stringLiteral(prn)
+		|
+		NullLiterals(prn)
+		|
+		LOOKAHEAD(2)
+		IntervalLiterals(prn)
+		|
+		LOOKAHEAD(2)
+		TextLiterals(prn)
+                |
+                LOOKAHEAD(2)
+                PreparedStmtParameter(prn)
+		|
+		TimeStampLiteral(prn)
+		|
+		TimeLiteral(prn)
+		|
+		DateLiteral(prn)
+		|
+		binaryLiteral(prn)
+		|
+		hex_decimalLiteral(prn)
+                |
+		IntegerLiteral(prn)
+                |
+                MacaddrLiteral(prn)
+                |
+                CidrLiteral(prn)
+                |
+                InetLiteral(prn)
+	)
+        [<FACTORIAL_>] [ "::" types()]
+}
+
+void IsNullExpression(PrintStream prn):
+{}
+{
+  <IS_> [<NOT_>] <NULL_>
+}
+
+void IsBooleanExpression(PrintStream prn):
+{}
+{
+  <IS_> [<NOT_>] <BINARY_LITERAL>
+}
+
+void PreparedStmtParameter(PrintStream prn):
+{}
+{
+ <PARAM_PLACE_HOLDER> /* place holder of the form $N for prepared statement */
+}
+
+void TimeStampLiteral(PrintStream prn):
+{}
+{
+    <TIMESTAMP_LITERAL>
+}
+void TimeLiteral(PrintStream prn):
+{}
+{
+    <TIME_LITERAL>
+}
+void DateLiteral(PrintStream prn):
+{}
+{
+    <DATE_LITERAL>
+}
+
+void IntervalLiterals(PrintStream prn):
+{}
+{
+//    <INTERVAL_> stringLiteral(prn)
+	<INTERVAL_LITERAL>
+}
+void TextLiterals(PrintStream prn):
+{}
+{
+	<TEXT_LITERAL>
+}
+
+void NullLiterals(PrintStream prn):
+{}
+{
+    <NULL_>
+}
+
+void booleanLiteral(PrintStream prn):
+{}
+{
+	<TRUE_> | <FALSE_>
+}
+void binaryLiteral(PrintStream prn):
+{}
+{
+	<BINARY_LITERAL>
+}
+void hex_decimalLiteral(PrintStream prn):
+{}
+{
+	<HEXDECIMAL_LITERAL>
+}
+
+void IntegerLiteral(PrintStream prn):
+{}
+{
+    <INTEGER_LITERAL>
+}
+
+void MacaddrLiteral(PrintStream prn):
+{}
+{
+    <MACADDR_LITERAL>
+}
+
+void CidrLiteral(PrintStream prn):
+{}
+{
+    <CIDR_LITERAL>
+}
+
+void InetLiteral(PrintStream prn):
+{}
+{
+    <INET_LITERAL>
+}
+
+void GeometryLiteral(PrintStream prn):
+{}
+{
+    <GEOMETRY_LITERAL>
+}
+
+/*
+void Box2DLiteral(PrintStream prn):
+{}
+{
+    <BOX2D_LITERAL>
+}
+
+void Box3DLiteral(PrintStream prn):
+{}
+{
+    <BOX3D_LITERAL>
+}
+
+void Box3DExtentLiteral(PrintStream prn):
+{}
+{
+    <BOX3DEXTENT_LITERAL>
+}
+
+
+void RegClassLiteral(PrintStream prn):
+{}
+{
+    <REGCLASS_LITERAL>
+}
+*/
+
+void PseudoColumn(PrintStream prn):
+{}
+{
+	<PARENTHESIS_START_>
+    <SELECT_> [ <ALL_> | <DISTINCT_> ]
+    SelectList(prn)
+    [ FromClause(prn) ]
+    [ WhereClause(prn) ]
+    [ LimitClause(prn) ]
+    [ OffsetClause(prn) ]
+    <PARENTHESIS_CLOSE_>
+}
+
+
+void SQLArgumentList(PrintStream prn):
+{}
+{
+	SQLArgument(prn) (","  SQLArgument(prn))*
+}
+
+void SQLArgument(PrintStream prn):
+{}
+{
+    SQLSimpleExpression(prn)
+}
+
+void CharString(PrintStream prn):
+{}
+{
+	extendbObject(prn)
+	/*Look into how to specify the a char string* which would allow it to take in any word*/
+}
+
+
+void FunctionCall(PrintStream prn) :
+{}
+{
+	LOOKAHEAD(2)
+	Func_PgCurrentDate(prn)
+	|
+	LOOKAHEAD(2)
+	Func_PgCurrentTime(prn)
+	|
+	LOOKAHEAD(2)
+	Func_PgCurrentTimeStamp(prn)
+	|
+    LOOKAHEAD(2)
+    Func_User(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Avg(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Count(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Max(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Min(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Stdev(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Sum(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Variance(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Trim	(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Case(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Cast(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Extract(prn)
+    |
+ 	LOOKAHEAD(2)
+ 	Func_Convert(prn)
+  	|
+	LOOKAHEAD(2)
+  	Func_Overlay(prn)
+    |
+  	LOOKAHEAD(2)
+	Func_Position(prn)
+	|
+	LOOKAHEAD(4)
+	Func_Substring(prn)
+	|
+    LOOKAHEAD(2)
+    Func_ClockTimeStamp(prn)
+    |
+    LOOKAHEAD(2)
+    Func_StatementTimeStamp(prn)
+    |
+    LOOKAHEAD(2)
+    Func_TransactionTimeStamp(prn)
+  	|
+  	LOOKAHEAD(2)
+  	Func_CurrentDatabase(prn)
+  	|
+  	LOOKAHEAD(2)
+  	Func_CurrentSchema(prn)
+    |
+    LOOKAHEAD(2)
+    Func_Version(prn)
+  	|
+  	LOOKAHEAD(2)
+  	Func_BitAnd(prn)
+  	|
+  	LOOKAHEAD(2)
+  	Func_BitOr(prn)
+  	|
+  	LOOKAHEAD(2)
+  	Func_BoolAnd(prn)
+  	|
+  	LOOKAHEAD(2)
+  	Func_BoolOr(prn)
+  	|
+  	LOOKAHEAD(2)
+  	Func_CorrCov(prn)  
+  	|
+  	LOOKAHEAD(2)
+  	Func_Regr(prn)
+	|
+    LOOKAHEAD(2)
+    Func_Coalesce(prn)
+    |
+    LOOKAHEAD(2)
+    Func_NullIf(prn)
+    |
+    LOOKAHEAD(2)
+  	Func_Custom(prn)
+}
+
+void Func_Custom(PrintStream prn):
+{}
+{
+  	Identifier(prn) <PARENTHESIS_START_> [SQLArgumentList(prn)] <PARENTHESIS_CLOSE_>  
+}
+
+void Func_NullIf(PrintStream prn):
+{}
+{
+    <NULLIF_> <PARENTHESIS_START_> SQLArgument(prn) "," SQLArgument(prn) <PARENTHESIS_CLOSE_>
+}
+
+void Func_Coalesce(PrintStream prn):
+{}
+{
+	<COALESCE_> <PARENTHESIS_START_> SQLArgumentList(prn) <PARENTHESIS_CLOSE_>
+}
+
+void Func_ClockTimeStamp(PrintStream prn):
+{}
+{
+    
+    <CLOCK_TIMESTAMP_> [<PARENTHESIS_START_><PARENTHESIS_CLOSE_>]
+}
+
+void Func_StatementTimeStamp(PrintStream prn):
+{}
+{
+    
+    <STATEMENT_TIMESTAMP_> [<PARENTHESIS_START_><PARENTHESIS_CLOSE_>]
+}
+
+void Func_TransactionTimeStamp(PrintStream prn):
+{}
+{
+    <TRANSACTION_TIMESTAMP_> [<PARENTHESIS_START_><PARENTHESIS_CLOSE_>]
+}
+
+void Func_CurrentDatabase(PrintStream prn):
+{}
+{
+    <CURRENT_DATABASE_> [<PARENTHESIS_START_><PARENTHESIS_CLOSE_>]
+}
+
+void Func_CurrentSchema(PrintStream prn):
+{}
+{
+    <CURRENT_SCHEMA_> [<PARENTHESIS_START_><PARENTHESIS_CLOSE_>]
+}
+
+void Func_Version(PrintStream prn):
+{}
+{
+    <VERSION_> <PARENTHESIS_START_><PARENTHESIS_CLOSE_>
+}
+
+void Func_BitAnd(PrintStream prn):
+{}
+{
+    <BIT_AND_> <PARENTHESIS_START_> [<DISTINCT_>] SQLArgument(prn) <PARENTHESIS_CLOSE_>
+}
+
+void Func_BitOr(PrintStream prn):
+{}
+{
+    <BIT_OR_> <PARENTHESIS_START_> [<DISTINCT_>] SQLArgument(prn) <PARENTHESIS_CLOSE_>
+}
+
+void Func_BoolAnd(PrintStream prn):
+{}
+{
+    (<BOOL_AND_> | <EVERY_>) <PARENTHESIS_START_> [<DISTINCT_>] SQLArgument(prn) <PARENTHESIS_CLOSE_>
+}
+
+void Func_BoolOr(PrintStream prn):
+{}
+{
+    <BOOL_OR_> <PARENTHESIS_START_> [<DISTINCT_>] SQLArgument(prn) <PARENTHESIS_CLOSE_>
+}
+
+void Func_CorrCov(PrintStream prn):
+{}
+{ 
+    (<CORR_> | <COVAR_POP_> | <COVAR_SAMP_>) <PARENTHESIS_START_> SQLArgument(prn) "," SQLArgument(prn) <PARENTHESIS_CLOSE_>
+}
+
+void Func_Regr(PrintStream prn):
+{}
+{   //dont change the order, it is being used in FunctionHandler.java
+    (<REGR_AVGX_> | <REGR_AVGY_> | <REGR_COUNT_> | <REGR_INTERCEPT_> 
+    | <REGR_R2_> | <REGR_SLOPE_> | <REGR_SXX_> | <REGR_SXY_> | <REGR_SYY_>)
+    <PARENTHESIS_START_> SQLArgument(prn) "," SQLArgument(prn) <PARENTHESIS_CLOSE_>
+}
+
+void Func_Substring(PrintStream prn):
+{}
+{
+ <SUBSTRING_><PARENTHESIS_START_>SQLArgument(prn) [<FROM_> SQLArgument(prn)] [<FOR_> SQLArgument(prn)]<PARENTHESIS_CLOSE_>
+}
+
+void Func_Position(PrintStream prn):
+{}
+{
+ <POSITION_> <PARENTHESIS_START_> SQLArgument(prn) <IN_> SQLArgument(prn)<PARENTHESIS_CLOSE_>
+}
+
+void Func_Overlay(PrintStream prn):
+{}
+{
+ <OVERLAY_><PARENTHESIS_START_>SQLArgument(prn) <PLACING_>  SQLArgument(prn) <FROM_> SQLArgument(prn) [<FOR_> SQLArgument(prn)]<PARENTHESIS_CLOSE_>
+}
+
+void Func_Convert(PrintStream prn):
+{}
+{
+ <CONVERT_><PARENTHESIS_START_>SQLArgument(prn) (<USING_>|",") (<STRING_LITERAL> | Identifier(prn)) ["," (<STRING_LITERAL> | Identifier(prn))]<PARENTHESIS_CLOSE_>
+}
+
+void Func_Extract(PrintStream prn):
+{}
+{
+	<EXTRACT_> <PARENTHESIS_START_> 
+	//DatetimeField() <FROM_> 
+	(
+   <YEAR_FROM> 
+ | <QUARTER_FROM> 
+ | <MONTH_FROM> 
+ | <WEEK_FROM> 
+ | <DAY_FROM> 
+ | <HOUR_FROM> 
+ | <MINUTE_FROM> 
+ | <SECOND_FROM>
+ | <DOY_FROM> 
+ | <DOW_FROM> 
+ | <DECADE_FROM> 
+ | <CENTURY_FROM>
+ | <MILLISECOND_FROM>
+ | <MILLENNIUM_FROM>
+ | <MICROSECONDS_FROM>
+ | <EPOCH_FROM>
+	)
+	SQLArgument(prn) <PARENTHESIS_CLOSE_>
+}
+
+void Func_User(PrintStream prn):
+{}
+{
+  (<USER_> | <CURRENT_USER_>) [<PARENTHESIS_START_><PARENTHESIS_CLOSE_>]
+}
+
+void Func_Case(PrintStream prn):
+{}
+{
+        LOOKAHEAD(2)
+	<CASE_>
+		SQLSimpleExpression(prn)
+		(<WHEN_> SQLSimpleExpression(prn) <THEN_> SQLSimpleExpression(prn))*
+		[<ELSE_> SQLSimpleExpression(prn)]
+	<END_>
+	|
+		<CASE_>
+
+			(<WHEN_> SQLComplexExpression(prn) <THEN_> SQLSimpleExpression(prn))*
+			[<ELSE_> SQLSimpleExpression(prn)]
+		<END_>
+}
+
+void Func_Trim(PrintStream prn):
+{}
+{
+ //   <TRIM_> <PARENTHESIS_START_> SQLArgument(prn) ["," SQLArgument(prn)] <PARENTHESIS_CLOSE_>
+    <TRIM_> <PARENTHESIS_START_> (<BOTH>|<LEADING>|<TRAILING>) [SQLArgument(prn)] <FROM_> SQLArgument(prn)<PARENTHESIS_CLOSE_>
+}
+
+void Func_Avg(PrintStream prn):
+{}
+{
+    <AVERAGE_> <PARENTHESIS_START_> [<DISTINCT_>] SQLArgument(prn) <PARENTHESIS_CLOSE_>
+}
+
+void Func_Count(PrintStream prn):
+{}
+{
+	<COUNT_> <PARENTHESIS_START_> (<STAR_> | [<DISTINCT_> | <ALL_>] SQLArgument(prn)) <PARENTHESIS_CLOSE_>
+}
+
+void Func_Max(PrintStream prn):
+{}
+{
+    <MAX_> <PARENTHESIS_START_> [<DISTINCT_>] SQLArgument(prn) <PARENTHESIS_CLOSE_>}
+
+void Func_Min(PrintStream prn):
+{}
+{
+    <MIN_> <PARENTHESIS_START_>[<DISTINCT_>] SQLArgument(prn)<PARENTHESIS_CLOSE_>
+}
+
+void Func_Stdev(PrintStream prn):
+{}
+{
+    (<STDDEV_> | <STDDEV_POP_> | <STDDEV_SAMP_>) <PARENTHESIS_START_>[<DISTINCT_>] SQLArgument(prn)<PARENTHESIS_CLOSE_>
+}
+
+void Func_Variance(PrintStream prn):
+{}
+{
+    (<VARIANCE_> | <VARIANCE_POP_> | <VARIANCE_SAMP_>| <VAR_POP_> | <VAR_SAMP_>) <PARENTHESIS_START_> [<DISTINCT_>] SQLArgument(prn)<PARENTHESIS_CLOSE_>
+}
+void Func_Sum(PrintStream prn):
+{}
+{
+    <SUM_> <PARENTHESIS_START_> [<DISTINCT_>] SQLArgument(prn)<PARENTHESIS_CLOSE_>
+}
+
+void length(PrintStream prn):
+{}
+{
+	<INT_LITERAL>
+}
+void position(PrintStream prn):
+{}
+{
+	<INT_LITERAL>
+}
+
+/*Table Column Specification*/
+void TableColumn(PrintStream prn):
+{}
+{
+        extendbObject(prn)
+}
+
+void extendbObject(PrintStream prn):
+{}
+{
+	(
+	LOOKAHEAD(2)
+	TableName(prn)"."Identifier(prn) /*This takes care of column being refered as TableName.wcolumnName*/
+	|
+	Identifier(prn)
+	)
+}
+
+
+/*********
+	Simple Expression-- Ends -- This will become a production in the branch of relationalexpression
+	allowing us to mix logical and expressions using relational operators.
+********/
+
+void SelectAliasSpec(PrintStream prn):
+{}
+{
+	[<AS_>] AliasName(prn)
+}
+
+void AliasName(PrintStream prn):
+{}
+{
+	Identifier(prn)
+}
+
+void SQLComplexExpression(PrintStream prn):
+{}
+{
+/*
+	This will make the branch for the and or relation ship and
+	will include the -- SQLSimpleExpression as its leaf. enabling the Where clause to have
+	both SQLSimpleExpression as well as SQLComplexExpression== =Those having And /OR  relationships.
+*/
+	SQLAndExpression(prn) (SQLORExpression(prn))*
+}
+
+
+/***********************
+Expansion For select list ends
+********************/
+
+/*****************************
+SQL Logical Expression Starts here
+******************************/
+
+void SQLAndExpression(PrintStream prn):
+{}
+{
+/*
+		SQLAndExpression: The unary Logical expression can
+		SQLAndExp:
+*/
+
+	SQLUnaryLogicalExpression(prn) [LOOKAHEAD(2)<LEFTOUTER_>] (SQLAndExp(prn))* 
+}
+
+void SQLORExpression(PrintStream prn) :
+{}
+{
+	<OR_> SQLAndExpression(prn)
+
+
+}
+
+void SQLAndExp(PrintStream prn):
+{}
+{
+
+	<AND_> SQLUnaryLogicalExpression(prn) [LOOKAHEAD(2)<LEFTOUTER_>]
+}
+
+void SQLUnaryLogicalExpression(PrintStream prn) :
+{}
+{
+		/*
+			This represents a single unary Logical expression
+				a = b etc.
+		*/
+(
+    LOOKAHEAD(2) ExistsClause(prn)
+	|
+	LOOKAHEAD(2)
+	[<NOT_>] SQLCondResult(prn)
+	|
+    LOOKAHEAD(2) [<NOT_>] SQLRelationalExpression(prn)
+ )
+}
+
+void SQLCondResult(PrintStream prn):
+{}
+{
+    <TRUE_>
+    |
+    <FALSE_>
+}
+void ExistsClause(PrintStream prn):
+{}
+{
+	    [<NOT_>] "EXISTS" <PARENTHESIS_START_> SubQuery(prn) <PARENTHESIS_CLOSE_>
+}
+
+
+void SQLRelationalExpression(PrintStream prn):
+{}
+{
+
+    (
+	    LOOKAHEAD(<PARENTHESIS_START_> SQLSimpleExpression(prn) ",")
+		SQLExpressionList(prn)
+	    |
+	    SQLSimpleExpression(prn)
+    )
+
+	/* Lookahead(2) is required because of NOT IN,NOT BETWEEN and NOT LIKE */
+    (
+    	LOOKAHEAD(2) SQLRelationalOperatorExpression(prn)
+    	|
+    	(
+    		LOOKAHEAD(2) SQLInClause(prn)
+			|LOOKAHEAD(2) SQLBetweenClause(prn) 
+			|LOOKAHEAD(2) SQLLikeClause(prn)
+		)
+    	|  
+    	LOOKAHEAD(3)IsNullClause(prn)
+    	|
+    	IsBooleanClause(prn)
+   	)?
+}
+
+void SQLRelationalOperatorExpression(PrintStream prn):
+{}
+{
+    Relop(prn)
+    /* Only after seeing an ANY/ALL or <PARENTHESIS_START_> followed by a SubQuery() we can
+    determine that it is a sub-query
+    */
+
+    (   LOOKAHEAD("ANY" | "ALL"|"SOME")
+        ["ALL" | "ANY" | "SOME" ]
+        (
+            LOOKAHEAD( <PARENTHESIS_START_> SubQuery(prn))
+            <PARENTHESIS_START_> SubQuery(prn) <PARENTHESIS_CLOSE_>
+            |
+            <PARENTHESIS_START_> SQLExpressionList(prn) <PARENTHESIS_CLOSE_>
+        )
+       	|
+        SQLSimpleExpression(prn)
+   	)
+}
+
+void Relop(PrintStream prn):
+{}
+{ 
+	("=" |"!=" | "#" | "<>" |">" | ">=" | "<" | "<=" | "&&" | "&<" | "&<|" | "&>" | "<<" | "<<|" | ">>" | "@" | "|&>" | "|>>" | "~" | "~=")
+}
+
+void SQLInClause(PrintStream prn):
+{}
+{
+	[<NOT_>]
+    <IN_>
+    (
+    LOOKAHEAD(<PARENTHESIS_START_> SubQuery(prn))  <PARENTHESIS_START_> SubQuery(prn) |
+                       <PARENTHESIS_START_> SQLExpressionList(prn)
+    )
+
+    <PARENTHESIS_CLOSE_>
+}
+
+
+void SQLBetweenClause(PrintStream prn):
+{}
+{
+    [<NOT_>]
+    <BETWEEN_>
+    SQLSimpleExpression(prn) "AND" SQLSimpleExpression(prn)
+}
+void SQLLikeClause(PrintStream prn):
+{}
+{
+	(
+	   	[<NOT_>] (<LIKE_> | <ILIKE_> | <SIMILAR_TO_>)
+	    SQLSimpleExpression(prn)
+	    [<ESCAPE_> SQLSimpleExpression(prn)]
+	    |
+	    (
+	    	<NOT_BITWISE_>
+	   		|
+	   	<REGEX_NOT_MATCHES_>
+	   		|
+	   	<REGEX_MATCHES_CASE_INSTV_>
+	   		|
+	   	<REGEX_NOT_MATCHES_CASE_INSTV_>
+	   		|
+	   	<OVERLAPS_>
+		)
+	    SQLSimpleExpression(prn)
+	)		
+}
+
+void SubQuery(PrintStream prn):
+{}
+{
+	 SelectWithoutOrder(prn)
+/*	 |
+	 <PARENTHESIS_START_> SubQuery(prn) <PARENTHESIS_CLOSE_>*/
+	/* Made some changes */
+}
+
+void IsNullClause(PrintStream prn):
+{}
+{
+		(
+		  "IS" [<NOT_>]
+		   |
+	          "="
+		   |
+		  "!="
+		)
+		"NULL"
+}
+
+void IsBooleanClause(PrintStream prn):
+{}
+{
+		(
+		  "IS" [<NOT_>]
+		   |
+	          "="
+		   |
+		  "!="
+		)
+		(
+		"TRUE"
+		|
+		"FALSE"
+		)
+}
+
+/*
+	Into Clause Starts Here
+*/
+void IntoClause(PrintStream prn):
+{}
+{
+	<INTO_> 
+	[<TEMPORARY_>| <TEMP_>] [<TABLE_>] TableName(prn)
+}
+/*
+	From Clause Starts Here
+*/
+
+void FromClause(PrintStream prn):
+{}
+{
+	<FROM_>
+	TableList(prn)
+}
+
+void TableSpec (PrintStream prn):
+{}
+{
+	[LOOKAHEAD(2)<ONLY_>] TableName(prn) [LOOKAHEAD(2)SelectAliasSpec(prn)]
+	|
+	<PARENTHESIS_START_> SelectWithoutOrder(prn) <PARENTHESIS_CLOSE_> [LOOKAHEAD(2)SelectAliasSpec(prn)][ <PARENTHESIS_START_> ColumnNameList(prn) <PARENTHESIS_CLOSE_>]
+}
+
+void TableList(PrintStream prn):
+{}
+{
+	FromTableSpec(prn) ("," FromTableSpec(prn))*
+}
+
+void FromTableSpec(PrintStream prn):
+{}
+{
+
+	TableSpec(prn) (
+			<CROSS_> <JOIN_> TableSpec(prn)
+			|
+   		    (
+			  [<INNER_>] <JOIN_> TableSpec(prn) JoinSpec(prn)
+			|
+              (
+               <LEFT_>
+   		   	   |
+		       <RIGHT_>
+               | 
+               <FULL_> 
+		   	  )
+			  [<OUTER_>] <JOIN_> TableSpec(prn) JoinSpec(prn)
+		    )
+		    |
+		    <NATURAL_>
+		     (
+			  [<INNER_>] <JOIN_> TableSpec(prn)
+			  |
+              (
+               <LEFT_>
+   		   	   |
+		       <RIGHT_>
+               | 
+               <FULL_> 
+		   	  )
+			  [<OUTER_>] <JOIN_> TableSpec(prn)
+			 )
+		     
+			)*
+
+}
+
+void JoinSpec(PrintStream prn):
+{}
+{
+	"ON"  SQLComplexExpression(prn)  | <USING_> <PARENTHESIS_START_> ColumnNameList(prn) <PARENTHESIS_CLOSE_>
+}
+
+
+
+/*
+	FROM CLAUSE ENDS
+*/
+
+
+/*
+	Where  Clause
+*/
+void WhereClause(PrintStream prn):
+{}
+{
+	<WHERE_>
+	SQLComplexExpression(prn)
+}
+/*
+		Group by Claus
+*/
+
+void GroupByClause(PrintStream prn):
+{}
+{
+    <GROUP_BY_> SQLExpressionList(prn)
+}
+
+
+void SQLExpressionList(PrintStream prn):
+{}
+{
+    SQLExpressionListItem(prn) (LOOKAHEAD("," SQLExpressionListItem(prn)) "," SQLExpressionListItem(prn))*
+}
+
+void SQLExpressionListItem(PrintStream prn):
+{}
+{
+	SQLSimpleExpression(prn)
+}
+
+
+void HavingClause(PrintStream prn):
+{}
+{
+  "HAVING" SQLComplexExpression(prn)
+}
+
+/*
+	Order By clause
+*/
+
+
+void OrderByClause(PrintStream  prn):
+{}
+{
+    <ORDER_BY_> OrderByItem(prn)
+        ("," OrderByItem(prn))*
+
+}
+void LimitClause(PrintStream  prn):
+{}
+{
+    <LIMIT_> (<INT_LITERAL> | <ALL_>)
+}
+
+void OffsetClause(PrintStream  prn):
+{}
+{
+    <OFFSET_> <INT_LITERAL>
+}
+
+
+void OrderByItem(PrintStream  prn):
+{}
+{
+ 	SQLSimpleExpression(prn) ["ASC" | "DESC" ]
+}
+
+void Func_PgCurrentDate(PrintStream prn):
+{}
+{
+    <CURRENTDATE_>
+}
+void Func_PgCurrentTime(PrintStream prn):
+{}
+{
+    <CURRENT_TIME_> [<PARENTHESIS_START_>SQLArgument(prn) <PARENTHESIS_CLOSE_>]
+}
+
+void Func_PgCurrentTimeStamp(PrintStream prn):
+{}
+{
+	<CURRENT_TIMESTAMP_> [<PARENTHESIS_START_>SQLArgument(prn) <PARENTHESIS_CLOSE_>]
+}
+
+void Func_Cast(PrintStream prn):
+{}
+{
+    <CAST_> <PARENTHESIS_START_> 
+    SQLArgument(prn) 
+    <AS_> (types() | <NULL_>)<PARENTHESIS_CLOSE_>
+}
+
+
+
+/*
+A list of Identifiers seprated by commas
+*/
+void ColumnNameList(PrintStream prn):
+{}
+{
+	Identifier(prn) (LOOKAHEAD(2) "," Identifier(prn))*
+}
+
+void TableName(PrintStream prn):
+{}
+{
+	(
+	  Identifier(prn)
+	|
+	  <TEMPDOT_>Identifier(prn)
+	|
+	  <PUBLICDOT_>Identifier(prn)
+	|
+	  <QPUBLICDOT_>Identifier(prn)
+	)
+}
+
+void FloatingPointNumber(PrintStream prn):
+{}
+{
+	LOOKAHEAD(2)
+	<DECIMAL_LITERAL>
+	|
+	<INT_LITERAL>
+	|
+	<SCIENTIFIC_LITERAL>
+}
+
+
+/*void ExpressionList(PrintStream prn):
+{}
+{
+
+}*/
+
+void ShowAgents():
+{}
+{
+	<SHOW_AGENTS_>
+}
+void ShowCluster():
+{}
+{
+	<SHOW_CLUSTER_>
+}
+void ShowDatabases():
+{}
+{
+	<SHOW_DATABASES_>
+}
+void ShowStatements():
+{}
+{
+	<SHOW_STATEMENTS_>
+}
+void ShowTables():
+{}
+{
+	<SHOW_TABLES_>
+}
+void ShowTranIsolation():
+{}
+{
+	<SHOW_TRAN_ISOLATION_>
+}
+
+
+void    BeginTransaction():
+{}
+{
+        <BEGIN_> [(
+                   <TRANSACTION_>
+                 | <TRAN_>
+                 | <WORK_>)]
+}
+void    CommitTransaction():
+{}
+{
+        ( <COMMIT_> | <END_> )
+        [( <TRANSACTION_> | <TRAN_>  | <WORK_>)]
+}
+
+void    RollbackTransaction():
+{}
+{
+        <ROLLBACK_> [(
+                       <TRANSACTION_>
+                     | <TRAN_>
+                     | <WORK_>)]
+}
+
+
+void    DescribeTable(PrintStream prn) :
+{}
+{
+      ( <DESCRIBE_> | <SHOW_TABLE_> | <SHOW_VIEW_> )
+      TableName(prn) 
+}
+void    ShowConstraints(PrintStream prn) :
+{}
+{
+       <SHOW_CONSTRAINTS_> <ON_> TableName(prn)
+}
+void    ShowIndexes(PrintStream prn) :
+{}
+{
+       <SHOW_INDEXES_> <ON_> TableName(prn)
+}
+void    ShowUsers(PrintStream prn) :
+{}
+{
+       <SHOW_USERS_>
+}
+void    ShowViews(PrintStream prn) :
+{}
+{
+       <SHOW_VIEWS_>
+}
+void 	Deallocate(PrintStream prn):
+{}
+{
+	<DEALLOCATE_> [<PREPARE_>] Identifier(prn) 
+}
+void 	CreateUser(PrintStream prn) :
+{}
+{
+	<CREATE_> <USER_> Identifier(prn) <PASSWORD_> Identifier(prn)
+	[<DBA_> | <RESOURCE_> | <STANDARD_>]
+}
+void 	DropUser(PrintStream prn):
+{}
+{
+	<DROP_> <USER_> Identifier(prn) 
+}
+void 	AlterUser(PrintStream prn):
+{}
+{
+	<ALTER_> <USER_> Identifier(prn) 
+	[<PASSWORD_> Identifier(prn)]
+	[<DBA_> | <RESOURCE_> | <STANDARD_>]
+}
+
+void 	Grantee(PrintStream prn):
+{}
+{
+	<PUBLIC_> | Identifier(prn) 
+}
+void 	GranteeList(PrintStream prn):
+{}
+{
+	Grantee(prn) (","Grantee(prn))*
+}
+void 	TableListForGrant(PrintStream prn):
+{}
+{
+	<STAR_> | Identifier(prn) (","Identifier(prn))*
+}
+void 	Privilege(PrintStream prn):
+{}
+{
+	<SELECT_>|<INSERT_>|<UPDATE_>|<DELETE_>|<REFERENCES_>|<INDEX_>|<ALTER_>
+}
+void 	PrivilegeList(PrintStream prn):
+{}
+{
+	<ALL_> | Privilege(prn) (","Privilege(prn))*
+}
+void 	Grant(PrintStream prn):
+{}
+{
+	<GRANT_> PrivilegeList(prn) <ON_> [<TABLE_>] TableListForGrant(prn) <TO_> GranteeList(prn)
+}
+void 	Revoke(PrintStream prn):
+{}
+{
+	<REVOKE_> PrivilegeList(prn) <ON_> [<TABLE_>] TableListForGrant(prn) <FROM_> GranteeList(prn)
+}
+void 	Cluster(PrintStream prn):
+{}
+{
+	<CLUSTER_> [Identifier(prn) [<ON_> Identifier(prn) ]]
+}
+void Truncate (PrintStream prn):
+{}
+{
+	<TRUNCATE_> [<TABLE_>] TableName(prn)
+}
+
+void Kill (PrintStream prn):
+{}
+{
+	<KILL_> <INT_LITERAL>
+}
+
+void Unlisten (PrintStream prn):
+{}
+{
+	<UNLISTEN_>  [Identifier(prn) | <STAR_>]
+}
+
+void DeclareCursor (PrintStream prn):
+{}
+{
+	<DECLARE_> Identifier(prn) <CURSOR_> <FOR_> Select(prn)
+}
+
+void CloseCursor (PrintStream prn):
+{}
+{
+	<CLOSE_> (Identifier(prn)| <ALL_>)
+}
+
+void FetchCursor (PrintStream prn):
+{}
+{
+	<FETCH_> <INT_LITERAL> <FROM_> Identifier(prn)
+}
+
+void 	AlterCluster(PrintStream prn):
+{}
+{
+	<ALTER_> <CLUSTER_> <SET_> (<READ_ONLY_> | <READ_WRITE_>)
+}

@@ -1,0 +1,4916 @@
+<?xml version="1.0"?>
+<!--
+  Copyright (c) 2011, Stado Global Development Group
+-->
+
+<book id="stado_admin_guide">
+ <title><productname>Stado</productname> Administration Guide</title>
+
+ <chapter id="install">
+  <title>Installation</title>
+
+  <sect1 id="os">
+   <title>Operating System</title>
+
+   <para>
+     Stado can run under Linux or any other platform that supports Java.
+   </para>
+
+   <sect2 id="kernel">
+     <title>Additional Linux Kernel Settings</title>
+
+     <para>
+       There are some additional kernel configuration values that should be 
+       modified. The underlying database requires ample shared memory, so the
+       <literal>kernel.shmmax</literal>, <literal>kernel.shmall</literal> and
+       <literal>kernel.sem</literal> values should be increased. This can be 
+       set in the <literal>/etc/sysctl.conf</literal> file. 
+     </para>
+
+     <para>
+       The value of <literal>kernel.shmmax</literal> refers to the maximum size
+       of shared memory segments in bytes, while 
+       <literal>kernel.shmmall</literal> is the total amount of shared memory 
+       available. These values should be set fairly high; you can start with 
+       50% of available memory and monitor the system to adjust.  If a lot of
+       system paging occurs, lower this value. Conversely, increase it if there
+       is still a lot of available memory afterwards.  
+     </para>
+
+     <para>
+       The value <literal>kernel.shmni</literal> is for the system wide maximum
+       number of shared memory segments. 4096 is a reasonable value.
+     </para>
+
+     <para>
+       The kernel setting <literal>kernel.sem</literal> maps to four 
+       parameters: <literal>SEMMSL SEMMNS SEMOPM SEMMNI</literal>
+     </para>
+
+     <programlisting>
+       SEMMSL: maximum num of semaphores per id 
+       SEMMNS: maximum number of semaphores in system (SEMMNI*SEMMSL)
+       SEMOPM: maximum num of ops per semop call 
+       SEMMNI: maximum number of semaphore identifiers
+     </programlisting>
+
+     <para>
+       Sample values for 2 GB of shared memory to be set in 
+       <literal>/etc/sysctl.conf</literal> (adjust <literal>shmmax</literal> 
+       and <literal>shmall</literal>, depending on desired shared memory):
+     </para>
+
+     <programlisting>
+       kernel.shmmax = 68719476736
+       kernel.shmmni = 4096
+       kernel.shmall = 4294967296
+       kernel.sem = 1000 128000 100 128
+     </programlisting>
+
+     <para>
+       After modifying the file, execute “<literal>sysctl –p</literal>” to have
+       these values take effect.
+     </para>
+
+     <sect3 id="open_files">
+       <title>Number of Open Files</title>
+
+       <para>
+         Depending on your configuration, you may run into errors involving a 
+         limit to the number of open files that your operating system allows 
+         the user to have. This is particularly likely when you have several 
+         nodes in the cluster. 
+       </para>
+
+       <para>
+         To change that, increase the limit of the number of files that can be 
+         open by modifying the <literal>/etc/security/limits.conf</literal> 
+         file, increasing the value for nofile. 
+       </para>
+
+       <para>
+         If you do not do this, you may encounter error messages like “unable 
+         to send to nodes”.
+       </para>
+     </sect3>
+
+     <sect3 id="read_ahead">
+       <title>Read-Ahead</title>
+
+       <para>
+         In data warehousing, tables are often scanned entirely, so having the 
+         operating system read ahead can significantly boost query times. You 
+         can increase the read-ahead size for your RAID devices with the 
+         blockdev command. For example:
+       </para>
+
+       <programlisting>
+         <![CDATA[
+           blockdev –-setra 16384 <device>
+         ]]>
+       </programlisting>
+     </sect3>
+
+     <sect3 id="access_time">
+       <title>Access Time</title>
+
+       <para>
+         Very often whenever files are accessed, the operating system will 
+         update the last time of read or write access for bookkeeping. To turn
+         off this extra unnecessary overhead in Linux, modify the 
+         <literal>/etc/fstab</literal> file after you create your dedicated 
+         data partitions, and add the “noatime” attribute.
+       </para>
+     </sect3>
+   </sect2>
+
+   <sect2 id="java">
+     <title>Java</title>
+
+     <para>
+       This software requires the Java Runtime Environment 5, version 1.5.0_12
+       or later. Earlier versions of the JRE may result in memory leaks that 
+       over time result in an OutOfMemory exception. 
+     </para>
+
+     <para>
+       Stado has also been successfully tested with Java 6 update 18, and is
+       recommended. 
+     </para>
+
+     <para>
+       If Stado was not installed via an installer that included a JRE, please 
+       go to http://www.java.com/en/download/index.jsp to download a Java 
+       Runtime Environment  Note that some Linux versions come with Java 
+       already installed, but these will not necessarily work with Stado. For 
+       example, the pre-installed version of Java on Ubuntu 7.10 causes the 
+       Stado process to chew up CPU and is unresponsive.
+     </para>
+   </sect2>
+
+   <sect2 id="stado">
+     <title>Stado</title>
+
+     <para>
+       The instructions for installing Stado vary, depending on the target
+       operating system.
+     </para>
+
+     <para>
+       We will discuss configuring the actual Stado system itself in the next
+       chapter.
+     </para>
+
+     <sect3 id="linux">
+       <title>Linux</title>
+
+       <orderedlist>
+         <listitem>
+           <para>
+             If not already, change to user root:
+           </para>
+           <programlisting>
+             su –
+           </programlisting>
+         </listitem>
+         <listitem>
+           <para>
+             Create a user group stadogrp, if it does not already exist:
+           </para>
+           <programlisting>
+             groupadd stadogrp
+           </programlisting>
+         </listitem>
+         <listitem>
+           <para>
+             Create an operating system user stado:
+           </para>
+           <programlisting>
+             useradd -g stadogrp stado
+           </programlisting>
+         </listitem>
+         <listitem>
+           <para>
+             All the files will be installed under /usr/local/stado-[version]. 
+             Extract the downloaded gzipped tar file to /usr/local/
+           </para>
+           <programlisting>
+             tar xvzf stado_[version].tar.gz –C /usr/local
+           </programlisting>
+           <para>
+             At this point, it will create the following subdirectories: bin, 
+             lib, config, doc, license, and log. The bin directory contains 
+             some scripts that are wrappers to make it easier to execute Stado 
+             programs, which are all java-based. The lib directory contains jar
+             libraries that are required by Stado. Configuration information 
+             that must be customized is found in the 
+             <literal>stado.config</literal> file in the config directory. 
+             Finally, a log directory is created for containing the server log 
+             files.
+           </para>
+         </listitem>
+         <listitem>
+           <para>
+             Set ownership of the files correctly:
+           </para>
+           <programlisting>
+             chown stado –R /usr/local/stado-[version]
+             chgrp stado –R /usr/local/stado-[version]
+           </programlisting>
+         </listitem>
+         <listitem>
+           <para>
+             We only allow the stado user to execute programs, except for 
+             cmdline. We also want to set other permissions:
+           </para>
+           <programlisting>
+             chmod 700 /usr/local/stado-[version]/bin/*.sh
+             chmod 775 /usr/local/stado-[version]/log
+             chmod 755 /usr/local/stado-[version]/bin/gs-cmdline.sh 
+             chmod 600 /usr/local/stado-[version]/config/*
+           </programlisting>
+         </listitem>
+       </orderedlist>
+
+       <para>
+         The Stado user and other users may want to reference this file in an 
+         appropriate profile file, like <literal>~/.bash_profile</literal>.  
+         These users should also be made part of the Stado group, if they want
+         to execute anything other than cmdline. For most commands, it is 
+         required that you execute them as the user stado.
+       </para>
+       <sect4 id="agents">
+         <title>Stado Agents</title>
+
+         <para>
+           If you wish to achieve better scalability and performance by having 
+           an agent run on each of the underlying nodes, repeat the procedure 
+           on each node that will participate in the database cluster. 
+         </para>
+
+         <para>
+           By default, each node agent will run within the main coordinator 
+           process. For better scalability and avoid having the coordinator 
+           node become a bottleneck, you can move this out onto each of the 
+           nodes, with each agent running as a separate process.
+         </para>
+
+         <para>
+           It is recommended to first configure a centralized version without 
+           the agents running on the nodes and verify that the system is 
+           working properly, before configuring the agents. It is easier to 
+           isolate any configuration issues this way.
+         </para>
+       </sect4>
+     </sect3>
+   </sect2>
+
+   <sect2 id="database">
+     <title>Underlying Database</title>
+
+     <para>
+       Stado uses PostgreSQL 9.1 or later as the underlying database on each of
+       the nodes. The underlying database should be fully and properly 
+       installed on all of the nodes that are going to make up the Stado 
+       cluster. It is also recommended to install PostgreSQL on all of the
+       nodes exactly the same way. 
+     </para>
+
+     <para>
+       It is important that your environment is set up properly so that Stado 
+       can work with the underlying database and use its utilities. It is a 
+       good idea to add the PostgeSQL bin directory to your 
+       <literal>PATH</literal> environment variable, to allow access to all of
+       its programs. You should add this to the appropriate profile file for 
+       Stado, like <literal>~stado/.bash_profile</literal>, if not already 
+       configured. For example:
+     </para>
+
+     <programlisting>
+       export PATH=/usr/local/pgsql/bin:$PATH
+     </programlisting>
+
+     <para>
+       If GeoSpatial queries will be used, PostGIS 1.5 needs to be installed
+       in the database <literal>template1</literal>. Follow the PostGIS setup
+       steps at http://postgis.refractions.net/documentation/manual-1.5/ch02.html#PGInstall
+     </para>
+
+     <sect3 id="logging">
+       <title>Logging Considerations</title>
+
+       <para>
+         Like other database systems, PostgreSQL uses logging for point in time
+         recovery, called Write Ahead Logging (WAL). 
+       </para>
+
+       <para>
+         The location of these files in a subdirectory called 
+         <literal>pg_xlog</literal> in the data directory (the data directory 
+         is the one specified with initdb). Although it is not required, you 
+         may want to consider keeping these files on a separate disk, for 
+         performance reasons. This can be done by either setting up a symbolic
+         link, or by creating a new disk partition and mounting it at 
+         <literal>pg_xlog</literal>, below the data directory.
+       </para>
+     </sect3>
+
+     <sect3 id="init">
+       <title>Initializing Underlying System</title>
+
+       <para>
+         PostgreSQL requires execution of the <literal>initdb</literal> command
+         for initialization. If you used an installer, you can skip this step. 
+         Login as the user postgres, and execute a command like the one below.  
+       </para>
+
+       <para>
+         The -D option must be included to indicate the location of the data. 
+         We recommend a dedicated device with redundancy, whether local with 
+         RAID 10 or RAID 5, or attached via SAN. If the PostgreSQL installer 
+         already prompted you for this and you configured it, you can skip 
+         this step. 
+       </para>
+
+       <para>
+         In the example below, the data directory is initialized at /GSDATA.
+       </para>
+ 
+       <programlisting>
+         /usr/local/pgsql/bin/initdb –D /GSDATA
+       </programlisting>
+
+       <para>
+         The <literal>initdb</literal> command must be executed on each node 
+         that will make up the Stado cluster.
+       </para>
+     </sect3>
+
+     <sect3 id="network">
+       <title>Network</title>
+
+       <para>
+         We must configure each of the underlying database instances to 
+         communicate with one another for the Stado cluster to function 
+         properly.
+       </para>
+
+       <para>
+         With PostgreSQL by default, only local connections will be accepted.
+         Since the instances need to work together, an additional configuration
+         parameter must be set in the postgresql.conf file, 
+         <literal>listen_addresses</literal>. It takes a comma-separated list 
+         of host names or ip addresses, including wildcards.  For security, you
+         should set this to just a list of the other nodes in the cluster. If 
+         using monitoring utilities from other locations, you can specify 
+         something broader, including *.
+       </para>
+
+       <para>
+         The next step is to configure the pg_hba.conf file, which is used to 
+         determine which users and clients can connect to the database. The 
+         file is found in the data directory specified by the initdb command 
+         earlier. 
+       </para>
+
+       <para>
+         More detailed information about configuring the file can be found in 
+         the PostgreSQL documentation, but we include an example entry below:
+       </para>
+
+       <programlisting>
+         # TYPE  DATABASE    USER        CIDR-ADDRESS          METHOD
+           host  all         all         192.168.75.0/24       md5
+       </programlisting>
+
+       <para>
+         The above entry allows any connection from the 192.168.75.* subnet, 
+         provided that the user name and password are valid, using the md5 
+         authentication method. It is a good idea to put the nodes on its own
+         subnet, with access to the underlying databases only occurring through
+         Stado.
+       </para>
+     </sect3>
+
+     <sect3 id="config_db">
+       <title>Configuring the Underlying Database</title>
+
+       <para>
+         PostgreSQL offers many configuration and tuning options to help 
+         database administrators improve the performance of their system for
+         the particular environment that it is running in.  In this case, we
+         want to tune the database for a decision support environment. 
+       </para>
+
+       <para>
+         Available configuration options can be found in a file named 
+         <literal>postgres.conf</literal> in the data directory.  The most 
+         important options that you’ll want to be concerned about appear below.
+       </para>
+
+       <programlisting>
+         shared_buffers = 512MB    
+         maintenance_work_mem = 256MB
+         work_mem = 128MB
+         effective_cache_size = 2GB
+         random_page_cost = 4
+ 
+         wal_buffers = 64
+         checkpoint_segments = 128    
+         checkpoint_timeout = 900
+
+         max_connections = 100
+         default_statistics_target = 500
+       </programlisting>
+
+       <para>
+         More details about these options appear in the PostgreSQL 
+         documentation. The parameters in the first group are the most 
+         important, and should be adjusted based on the amount of memory that
+         you have and number of users. Tuning can be difficult and may require
+         trial and error to get the best results, depending on your 
+         environment, the number of users, the schema, and the queries. 
+       </para>
+
+       <para>
+         We briefly discuss these parameters. 
+       </para>
+
+       <para>
+         The parameter <literal>shared_buffers</literal> is for the database’s 
+         buffer cache. In OLTP systems, you normally want this to be as large 
+         as possible (available system memory), but not exceeding 2.5GB.  For 
+         data warehousing, it is best to set this according to trial and error 
+         with your data. Sometimes it is surprisingly faster to run with a 
+         smaller sized cache, such as 256MB. Note that Linux has its own file 
+         system cache, so data can still be cached in memory, just not in the 
+         database’s cache. This also means that double buffering can occur, 
+         once in <literal>shared_buffers</literal>, and again in the file 
+         system cache, making less than optimal use of available memory for 
+         caching. Data warehousing often involves large sequential scans 
+         anyway, and an overly large shared_buffers setting where a large 
+         cache is managed may actually hurt performance.
+       </para>
+
+       <para>
+         The parameter <literal>maintenance_work_mem</literal> is used for
+         creating indexes, foreign keys, and vacuum and analyze. You may want
+         to consider setting this value much higher initially while loading up 
+         the database and building indexes, and then lowering it later.
+       </para>
+
+       <para>
+         The parameter <literal>work_mem</literal> is used for operations like
+         sorting and aggregation.  Setting this high can substantially improve 
+         sort performance. As a result, we have increased the default from 1MB
+         to 128MB here. Keep in mind that a single query may need multiple 
+         <literal>work_mem</literal> allocations, and you may have multiple 
+         concurrent users at the same time, so try not set 
+         <literal>work_mem</literal> too high, or swapping may occur.
+       </para>
+
+       <para>
+         The PostgreSQL query planner is only influenced by 
+         <literal>effective_cache_size</literal>; it does not actually 
+         influence allocated memory. For OLTP systems, it is recommended that
+         this is about 2/3 or RAM. The parameter 
+         <literal>random_page_cost</literal> is the internal cost the optimizer
+         uses for seek costing. While it depends on your system configuration,
+         schema and queries, you will probably want to bias things towards
+         sequential scans instead of index seeks. One way to do that is to 
+         decrease <literal>effective_cache_size</literal> and increase 
+         <literal>random_page_cost</literal>.
+       </para>
+
+       <para>
+         The second group of values is used for the Write Ahead Log, and can 
+         impact performance in particular when loading the database.
+       </para>
+
+       <para>
+         The parameter <literal>max_connections</literal> determines how many
+         simultaneous connections can connect to the PostgreSQL database. Stado
+         creates pools of connections to the database, and you want to make 
+         sure you have enough connections. The exact amount for this to use may
+         be influenced by how you configure the Stado stado.config file 
+         (described later), but it is a good idea to make sure that this is set
+         sufficiently high.  Note that if you use multiple logical nodes per 
+         same physical server, you will need to increase this; one pool will be
+         used for each logical node, even though they refer to the same 
+         PostgreSQL instance. Also, additional connections are needed for: row
+         shipping during some queries; a coordinator connection pool; a 
+         connection to the metadata database. If connections are an issue, you
+         can increase <literal>max_connections</literal> and consider 
+         decreasing the min and max pool size.
+       </para>
+     </sect3>
+
+     <sect3 id="start_db">
+       <title>Starting the Underlying Database Server Process</title>
+
+       <para>
+         PostgreSQL offers the <literal>pg_ctl</literal>  wrapper to start the
+         postmaster and run it as a background process. For example, if 
+         <literal>initdb</literal> used <literal>/GSDATA</literal> as the 
+         location of PostgreSQL data, you can start the postmaster process
+         using the command below:
+       </para>
+
+       <programlisting>
+         /usr/local/pgsql/bin/pg_ctl start -D /GSDATA -l logfile
+       </programlisting>
+
+       <para>
+         The -l option allows you to specify a log file for the PostgreSQL log.
+       </para>
+     </sect3>
+
+     <sect3 id="db_user">
+       <title>Database User</title>
+
+       <para>
+         A database user must be created on each instance that will be used by
+         Stado for connecting to the databases.  This single user will always 
+         be used for connecting to the underlying database. The username and 
+         password will be required later when configuring Stado’s 
+         <literal>stado.config</literal> file, so please make note of it. You
+         should use the same username and password on all instances.
+       </para>
+
+       <para>
+         In the example below, we create a database user named stado. Note that
+         this is a database user and not operating system user. Stado will 
+         later use this user when connecting to the individual database 
+         instances running on the nodes.
+       </para>
+
+       <programlisting>
+	 /usr/local/pgsql/bin/createuser –d –E stado –U postgres -P
+       </programlisting>
+
+       <para>
+         After executing this, it will prompt you for a password, and ask you
+         to retype it. Please note this password for later. It may also give 
+         you a third password prompt. This is because of the -U option, where
+         we are executing the command as the database super user that you used 
+         when you configured the underlying database, in this case user 
+         <literal>postgres</literal>.
+       </para>
+
+       <para>
+         Repeat the execution of <literal>createuser</literal> on each node.
+       </para>
+
+       <sect4 id="coordinator">
+         <title>Coordinator</title>
+
+         <para>
+           When using PostgreSQL with authentication, a password will be 
+           required for authentication.  Stado makes use of PostgreSQL command
+           line utilities, so we create a <literal>.pgpass</literal> file in 
+           the stado user’s home directory. This is used by PostgreSQL to
+           provide passwords to connect to other servers. This only needs to be
+           done on the coordinator. 
+         </para>
+
+         <para>
+           Login as user <literal>stado</literal>.
+         </para>
+
+         <para>
+           The file’s access must be restricted to the user, in this case 
+           <literal>stado</literal>.  After creating the file, you need to 
+           restrict access via <literal>chmod 600 ~stado/.pgpass</literal>.
+         </para>
+
+         <para>
+           It is important that you setup <literal>.pgpass</literal>, otherwise,
+           executing Stado scripts like <literal>gs-createmddb.sh</literal> will
+           appear to hang, because the particular PostgreSQL utility will be 
+           trying to prompt for a password.
+         </para>
+
+         <para>
+           The lines in the file are to appear in the format:
+         </para>
+
+         <programlisting>
+           hostname:port:database:username:password
+         </programlisting>
+
+         <para>
+           Wildcards may be used. An example appears below:
+         </para>
+
+         <programlisting>
+           *:*:*:stado:password
+         </programlisting>
+
+         <para>
+           where password is the password we used with 
+           <literal>createuser</literal>. The Stado process that will later run
+           under the <literal>stado</literal> user can now connect to all nodes 
+           and use PostgreSQL utilities without requiring a password from the  
+           user. Note that user “<literal>stado</literal>” here is a database 
+           user, not an operating system user.
+         </para>
+       </sect4>
+     </sect3>
+
+     <sect3 id="verify">
+       <title>Verify</title>
+
+       <para>
+         Before proceeding to configuring Stado, it is a good idea to verify 
+         that the underlying databases and network have been installed and 
+         configured properly. Doing this now will help make troubleshooting 
+         your Stado installation easier by eliminating the likelihood of 
+         configuration issues with the underlying database. 
+       </para>
+
+       <para>
+         Verification can be done by creating a test database on each, by 
+         running <literal>createdb</literal> from the coordinator. 
+       </para>
+
+       <programlisting>
+         /usr/local/pgsql/bin/createdb –h node1 –U stado test
+       </programlisting>
+
+       <para>
+         Here, node1 is the host name or IP address of one of the nodes that 
+         will be in the Stado cluster. Run this command from the coordinator 
+         node for each node. We use the database user <literal>stado</literal>
+         that we previously created and verify login and create privilege.
+       </para>
+
+       <para>
+         If there is a problem, verify that the 
+         <literal>postgresql.conf</literal> file has 
+         <literal>listen_addresses</literal> set to allowable hosts, that the 
+         node has a valid <literal>pg_hba.conf</literal> file, and that the 
+         <literal>postgres</literal> user on the coordinator has a valid 
+         <literal>.pgpass</literal> (or pgpass.conf) file. Note that if you 
+         modify the <literal>pg_hba.conf</literal> file, you must restart 
+         postmaster.
+       </para>
+     </sect3>
+   </sect2>
+  </sect1>
+ </chapter>
+
+ <chapter id="config">
+  <title>Stado Configuration</title>
+
+  <para>
+    This chapter discusses how to configure Stado, including creating and using
+    databases. The first part assumes a first time configuration after 
+    installation, and the chapter concludes with more information about 
+    multi-language support and an <literal>stado.config</literal> file 
+    reference.
+  </para>
+
+  <para>
+    If you have not done so already, login as the <literal>stado</literal> user
+    to modify. 
+  </para>
+ 
+  <sect1 id="config_file">
+   <title>The stado.config File</title>
+
+    <para>
+      A configuration file must be created that will determine how the Stado 
+      server is run.  When the Stado server is run, it reads from a file named
+      <literal>stado.config</literal> in the <literal>config</literal> 
+      directory for system defaults. The file needs to be configured properly 
+      to initialize the metadata database and user-created databases.
+    </para>
+
+    <para>
+      There are a myriad of options, but few options need to be changed in 
+      practice, those being the host or IP of the nodes, underlying database 
+      username and password, and database port.
+    </para>
+
+    <para>
+      Permissions for <literal>stado.config</literal> should be set to be 
+      readable only by the <literal>stado</literal> user, since the file 
+      contains username and password information for connecting to the 
+      underlying databases.
+    </para>
+
+    <para>
+      The options for <literal>xdb.metadata.*</literal> determine where the
+      metadata database resides. The metadata database contains information 
+      about all of the user-created databases and schema info like tables, 
+      columns, data types, indexes, and constraints. Make sure that the 
+      <literal>xdb.metadata</literal> values are set properly, before trying
+      to execute <literal>gs-createmddb</literal>, which will create the 
+      metadata database. 
+    </para>
+
+    <para>
+      This <literal>stado.config</literal> file is also where you define the 
+      nodes that are used in the Stado cluster, specifying the host or IP 
+      address of each node. The username and password should be set to the same
+      values as those you used when you created the database user earlier 
+      (createuser with PostgreSQL).
+    </para>
+
+    <para>
+      The included default <literal>stado.config</literal> file contains the 
+      most important options you may want to change. A detailed reference of 
+      all of the available configuration options appears at the end of this 
+      chapter, along with descriptions of mapping data types and defining and
+      overriding SQL functions.
+    </para>
+
+    <sect2 id="config_sample">
+     <title>Sample stado.config File</title>
+
+      <para>
+        To give a better idea of what a real <literal>stado.config</literal> 
+        file looks like, a sample one appears below for a 4 node system. In 
+        addition, a sample <literal>stado.config</literal> is found in the 
+        <literal>config</literal> directory of your installation.
+      </para>
+
+      <para>
+        Note that some lines contain template variables that are enclosed with 
+        curly braces, like <literal>{dbhost}</literal> and 
+        <literal>{database}</literal>. These are dynamically substituted by the
+        Stado server per database as needed- there is no need for you to 
+        replace these here.
+      </para>
+
+      <para>
+        Be sure and modify the username and password information properly for 
+        the underlying databases, as well as the hostname or IP address of each
+        node in the database for <literal>xdb.node.1.dbhost</literal> through 
+        <literal>xdb.node.n.dbhost</literal>. Also, if logging is desired, 
+        modify the File parameter of each logger to be an absolute path to the 
+        desired target file location.
+      </para>
+
+      <para>
+        The example below is for a four-node system. Note that you can use the 
+        same host or IP address for all if you would like to create a “cluster”
+        on a single system to just familiarize yourself with Stado. It will 
+        assign a unique database name to each “node,” creating 4 underlying 
+        databases. Also, you may choose to create fewer than 4 nodes if you 
+        wish. Just change the <literal>xdb.nodecount</literal> and comment out
+        or remove the appropriate <literal>xdb.node.n.dbhost</literal> entries.
+      </para>
+
+      <para>
+        In this file four different logs are referenced, as can be seen by the
+        log4j properties. There is a main server log, a query log (to log 
+        SELECT statements), and a long query log (for logging long SELECT 
+        statements).
+      </para>
+
+      <programlisting>
+        ###########################################################################
+        # stado.config
+        #
+        # Stado configuration file
+        ###########################################################################
+
+
+        ###
+        ### Server settings
+        ###
+
+        xdb.port=6453
+        xdb.maxconnections=10
+
+
+        ###
+        ### Node &amp; JDBC Pool configuration
+        ### 
+
+        ### Set defaults for all nodes and MetaData database. 
+        ### These can be overriden.
+        ### Note that {dbhost} and {database} are template variables
+        ### that will be substituted dynamically per database
+
+        xdb.default.dbusername=stado
+        xdb.default.dbpassword=password
+
+        ### Connection thread defaults for each node
+        ### Note that these are pooled, so the number of clients connected 
+        ### to the Stado server can be greater than pool size.
+
+        xdb.default.threads.pool.initsize=5
+        xdb.default.threads.pool.maxsize=10
+
+
+        ### Connectivity for MetaData database
+
+        xdb.metadata.database=XDBSYS
+        xdb.metadata.dbhost=localhost
+
+        ### The number of nodes in cluster
+
+        xdb.nodecount=4
+
+        ### Individual node info
+        ### Set these to hostname or IP addresses of nodes
+
+        xdb.node.1.dbhost=node1
+        xdb.node.2.dbhost=node2
+        xdb.node.3.dbhost=node3
+        xdb.node.4.dbhost=node4
+
+        ### Designate coordinator node
+        ### In practice, the coordinator node should be the node where
+        ### the Stado database is running.
+
+        xdb.coordinator.node=1
+
+
+        ###
+        ### Logging Settings
+        ###
+
+        ### The log4j library is used. 
+        ### More info at http://logging.apache.org/log4j/docs/
+
+        # rootLogger. Log warnings and errors.
+        log4j.rootLogger=WARN, console
+
+        # Define other characteristics for console log
+        log4j.appender.console=org.apache.log4j.RollingFileAppender
+        log4j.appender.console.maxFileSize=500KB
+        log4j.appender.console.maxBackupIndex=10
+        log4j.appender.console.layout=org.apache.log4j.PatternLayout
+        log4j.appender.console.layout.ConversionPattern=%d{ISO8601} - %-5p %m%n
+        log4j.appender.console.File=/usr/local/stado-2.0/log/console.log
+
+        # Log Server messages to the console logger
+        log4j.logger.Server=ALL, console
+
+        # Query logger.
+        # This logs all queries sent to the database. 
+        log4j.logger.query=INFO, QUERY
+        log4j.appender.QUERY=org.apache.log4j.RollingFileAppender
+        log4j.appender.QUERY.File=/usr/local/stado-2.0/log/query.log
+        log4j.appender.QUERY.maxFileSize=500KB
+        log4j.appender.QUERY.maxBackupIndex=10
+        log4j.appender.QUERY.layout=org.apache.log4j.PatternLayout
+        log4j.appender.QUERY.layout.ConversionPattern=%d{ISO8601} - %m%n
+
+        # Uncomment this if you would like other SQL commands other
+        # than SELECT to be logged in the query logger as well 
+        # (e.g. INSERT, UPDATE, DELETE).
+
+        #log4j.logger.command=INFO, QUERY
+
+        # A separate "long query" log may be defined to separately log queries
+        # that appear to be be taking a long time.
+        # Specify the threshold in seconds at which queries will show up in the 
+        # long query log.
+        xdb.longQuerySeconds=300
+
+        log4j.logger.longquery=INFO, LONGQUERY
+        log4j.appender.LONGQUERY=org.apache.log4j.RollingFileAppender
+        log4j.appender.LONGQUERY.File=/usr/local/stado-2.0/log/longqry.log
+        log4j.appender.LONGQUERY.maxFileSize=500KB
+        log4j.appender.LONGQUERY.maxBackupIndex=10
+        log4j.appender.LONGQUERY.layout=org.apache.log4j.PatternLayout
+        log4j.appender.LONGQUERY.layout.ConversionPattern=%d{ISO8601} - %m%n
+
+        # activity logger.
+        # This logs all queries sent to the database. 
+        log4j.logger.activity=INFO, activity
+        log4j.appender.activity=org.apache.log4j.RollingFileAppender
+        log4j.appender.activity.File=/usr/local/stado-2.0/log/activity.log
+        log4j.appender.activity.maxFileSize=10MB
+        log4j.appender.activity.maxBackupIndex=10
+        log4j.appender.activity.layout=org.apache.log4j.PatternLayout
+        log4j.appender.activity.layout.ConversionPattern=%d{ISO8601} - %m%n
+      </programlisting>
+
+      <para>
+        A request is determined to be “long” based on another 
+        <literal>stado.config</literal> value, 
+        <literal>xdb.longQuerySeconds</literal>, which should be set to the
+        number of seconds at which point it will be logged in the LONGQUERY 
+        log.
+      </para>
+    </sect2>
+  </sect1>
+
+  <sect1 id="init_stado">
+   <title>Initializing Stado</title>
+
+   <para>
+     To initialize the Stado cluster, the metadata database and an 
+     administrative user must be created.
+   </para>
+
+   <para>
+     First, it is a good idea to add the PostgreSQL bin directory to your 
+     <literal>PATH</literal> environment variable, to allow access to all of 
+     its programs. You may want to also add this to the appropriate profile 
+     like <literal>~stado/.bash_profile</literal> Example:
+   </para>
+
+   <programlisting>
+     export PATH=/usr/local/pgsql/bin:$PATH
+   </programlisting>
+
+   <para>
+     Before creating any user-defined databases, we must first create the 
+     metadata database to contain information about the user-created databases.
+     Once it is created, user-created databases and all of their corresponding
+     information about tables and columns, etc., will be stored there.
+   </para>
+
+   <para>
+     In addition, we need to create an administrative user for Stado. Note that
+     users in Stado are separate from the users used in PostgreSQL. Stado will
+     always use the same user specified in <literal>stado.config</literal> to
+     communicate with the underlying PostgreSQL databases. This is completely 
+     separate from the users that are defined to interact with the Stado 
+     cluster.
+   </para>
+
+   <para>
+     For both of these tasks, use the <literal>gs-createmddb.sh</literal> 
+     command. It creates the required actual database on the underlying node,
+     creates all needed tables, and creates an administrative user.  The exact 
+     schema of the metadata database can be seen in the appendix. 
+   </para>
+
+   <para>
+     This relies on configuration values stored in the 
+     <literal>stado.config</literal> file, so be sure that it is set properly. 
+     Also, refer to the command reference in the next chapter that discusses 
+     <literal>gs-createmddb</literal>. That means that you set all of the
+     <literal>xdb.metadata.*</literal> properties as how you want them, and 
+     that <literal>gs-createmddb</literal> will use these as your desired 
+     settings. The username and password used should be valid and have 
+     permission to create new databases and tables. You can use the username 
+     and password created earlier.
+   </para>
+
+   <para>
+     If everything was setup properly in <literal>stado.config</literal>, you 
+     are ready to execute <literal>gs-createmddb.sh</literal>. To create the 
+     metadata database and create an initial user at the Stado level named 
+     “admin” with the password “secret”:
+   </para>
+
+   <programlisting>
+     gs-createmddb.sh –u admin –p secret
+   </programlisting>
+
+   <para>
+     If -p is left off, the user will be prompted for a password.
+   </para>
+
+    <sect2 id="manual_mode">
+     <title>Manual Mode</title>
+
+     <para>
+       You can also choose to create the metadata database manually with the 
+       –m option, instead of having <literal>gs-createmddb</literal> do it for
+       you. Instructions for doing this with PostgreSQL appear below. (Skip 
+       this section if you created the metadata database successfully in the 
+       previous section.)
+     </para>
+
+     <para>
+       If a database user for the underlying databases was not created in the 
+       previous section, you should do so now. 
+     </para>
+
+     <para>
+       Next, create the database named <literal>XDBSYS</literal>, as designated
+       in the <literal>stado.config</literal> file as the metadata database by 
+       using the PostgreSQL command <literal>createdb</literal>.
+     </para>
+
+     <programlisting>
+       createdb XDBSYS -U stado
+     </programlisting>
+
+     <para>
+       Now, initialize the Stado metadata database. Note that –m is used here, 
+       indicating that the physical database already exists; we just need to 
+       initialize it and create the metadata tables in it.  Make sure a valid 
+       username and password are set in the <literal>xdb.metadata</literal> 
+       options of the <literal>stado.config</literal> file for the underlying 
+       database. Also, pass in a Stado administrative username and password to
+       create:
+     </para>
+
+     <programlisting>
+       gs-createmddb.sh –m –u admin –p secret
+     </programlisting>
+
+     <para>
+       Now the metadata database is ready, which can be verified using the 
+       PostgreSQL command psql:
+     </para>
+
+     <programlisting>
+       psql -U stado -d XDBSYS –h 127.0.0.1
+     </programlisting>
+
+     <para>
+       Note that when using <literal>psql</literal> with Stado, you must 
+       include the  -h option for host, even if it is local to force it to 
+       use a socket connection.
+     </para>
+
+     <para>
+       You should plan on backing up the metadata database regularly. Whereas
+       with other databases, an incremental backup may make the most sense, 
+       the metadata database will be relatively small, so a complete backup 
+       should be done.
+     </para>
+    </sect2>
+  </sect1>
+
+  <sect1 id="start">
+    <title>Starting the Coordinator and Agents</title>
+
+    <sect2 id="start_coord">
+      <title>Coordinator</title>
+
+      <para>
+        We are now ready to start the <literal>gs-server</literal> process so 
+        that we can create user databases. <literal>gs-server</literal> can be
+        started with no arguments if no databases have been created yet:
+      </para>
+
+      <programlisting>
+	gs-server.sh
+      </programlisting>
+
+      <para>
+        This will start the server in the background. If there is a problem 
+        with <literal>gs-server</literal>, please check the log files in the 
+        log directory and verify the configuration in 
+        <literal>stado.config</literal>.  Note that when executing the 
+        <literal>gs-server</literal> process, you may need to modify the 
+        parameters that Java uses, increasing the maximum amount of memory 
+        specified in the <literal>gs-server.sh</literal> launch script, 
+        depending on your requirements and system configuration.
+      </para>
+
+      <para>
+        When executing <literal>gs-server</literal> in the future, you can 
+        include a list of previously created databases to bring online with 
+        the -d option. That way, you will not need to separately execute 
+        <literal>gs-dbstart</literal>.
+      </para>
+
+      <programlisting>
+	gs-server.sh –d xtest
+      </programlisting>
+    </sect2>
+
+    <sect2 id="start_agents">
+      <title>Agents</title>
+
+      <para>
+        If you installed and configured the cluster to use Stado Agents, you 
+        will want to start the agents on all of the nodes. Perform this as user
+        <literal>stado</literal>.
+      </para>
+
+      <para>
+        The Stado agent is started by calling the 
+        <literal>gs-agent.sh</literal> wrapper script in the Stado 
+        <literal>bin</literal> directory. It expects the –n argument, followed 
+        by the designated node number this will act as in the cluster. Example:
+      </para>
+
+      <programlisting>
+	gs-agent.sh –n 4
+      </programlisting>
+
+      <para>
+        We recommend you start the server on the coordinator first 
+        (<literal>gs-server.sh</literal>), before starting the agents. If the 
+        <literal>gs-server</literal> process is stopped and restarted, it 
+        should reestablish connections with the running agents. Similarly, if 
+        an agent is stopped and restarted, <literal>gs-server</literal> will 
+        detect that and reestablish a connection.
+      </para>
+
+      <para>
+        <literal>gs-server</literal> will log the event that an agent has 
+        successfully connected to it, so if there is a problem in creating and 
+        using databases, please read the coordinator logs to pinpoint the 
+        source of the problem.
+      </para>
+    </sect2>
+  </sect1>
+
+  <sect1 id="creating_users">
+     <title>Creating User Databases</title>
+
+     <para>
+       Now that the metadata database has been created and 
+       <literal>gs-server</literal> is executing, you can create your own 
+       databases. 
+     </para>
+
+     <para>
+       First, configure the individual nodes in the 
+       <literal>stado.config</literal> file that you will be using if you have
+       not already. You should have also installed the underlying database such
+       as PostgreSQL 9.1 on all of those nodes, with the database server 
+       running. Note that it is a good idea to have all of the nodes installed
+       and configured exactly the same way to make administration easier. If 
+       you make any changes to <literal>stado.config</literal>, you will need
+       to restart <literal>gs-server</literal>.
+     </para>
+
+     <para>
+       It should also be pointed out that you could also have a system where 
+       one of the nodes in the Stado system both participates as a member of
+       user database nodes as well as contains the metadata database.
+     </para>
+
+     <para>
+       You create a database by using the <literal>gs-createdb.sh</literal> 
+       utility. When a database is created, it adds the appropriate information
+       to the metadata database. The <literal>gs-createdb.sh</literal> command 
+       will also try and create the database on the underlying nodes if you 
+       wish, which is recommended. Otherwise, use the -m (manual) option, which
+       will only update the metadata database information without trying to 
+       create any databases on the nodes.
+     </para>
+
+     <para>
+       See the <literal>gs-createdb</literal> command in the section of the 
+       Command Reference section of this document for more information. 
+     </para>
+
+    <sect2 id="example">
+      <title>Example</title>
+
+      <para>
+        We show two examples.  
+      </para>
+
+      <para>
+        The first example will create a Stado database named 
+        <literal>xtest</literal>. The physical underlying databases will be 
+        named xtestN1, xtestN2, xtestN3, and xtestN4 on the nodes, 
+        corresponding to their node numbers.
+      </para>
+
+      <programlisting>
+        gs-createdb.sh -d xtest -u admin -p &lt;password&gt; -n 1,2,3,4
+      </programlisting>
+
+      <para>
+        Note that if you are prompted by a password even with –p, it is the 
+        underlying tool, <literal>psql</literal> that is prompting you for a 
+        password. This means you are executing <literal>createdb</literal> 
+        under a user where a trusted PostgreSQL environment has not been 
+        configured. Be sure that it is configured for user 
+        <literal>stado</literal>, and execute the command as user 
+        <literal>stado</literal>.
+      </para>
+
+      <para>
+        <emphasis role="bold">Manual mode</emphasis>
+      </para>
+
+      <para>
+        If desired, the database can also be set up by hand, where the 
+        databases are first created on the individual nodes using PostgreSQL’s
+        <literal>createdb</literal> command. Care needs to be taken to name 
+        them with the desired database name followed by “N” and the node number
+        (&lt;dbname&gt;N1 on node 1, &lt;dbname&gt;N2 on node 2, etc.).  Once
+        that is done, <literal>gs-createdb.sh</literal> can be called using the
+        “-m” option to wire it up and update the metadata information.
+      </para>
+
+      <programlisting>
+        gs-createdb.sh -d xtest -u admin -p &lt;password&gt; -n 1,2,3,4 -m
+      </programlisting>
+    </sect2>
+  </sect1>
+
+  <sect1 id="testing_db">
+     <title>Testing the Database</title>
+
+     <para>
+       Once you have successfully created a database, you are ready to test 
+       using the command line utility. 
+     </para>
+
+     <para>
+       Note that <literal>gs-server</literal> will automatically bring the 
+       created database online and accept connections to it when you execute
+       <literal>gs-createdb.sh</literal>. 
+     </para>
+
+     <para>
+       With the server running ok, execute <literal>gs-cmdline.sh</literal>, 
+       specifying a database and valid username and password, such as:
+     </para>
+
+     <programlisting>
+       gs-cmdline.sh -d xtest -u admin -p &lt;password&gt;
+     </programlisting>
+
+     <para>
+       If you were able to connect ok you should receive a command prompt like
+       the following:
+     </para>
+
+     <programlisting>
+       Stado->
+     </programlisting>
+
+     <para>
+       Try creating a table. The following command creates a table mytable1 and
+       specifies that rows should be partitioned according to the column col1:
+     </para>
+
+     <programlisting>
+       CREATE TABLE mytable1 (col1 INT) PARTITIONING KEY col1 ON ALL;
+     </programlisting>
+
+     <para>
+       Try and insert some data:
+     </para>
+
+     <programlisting>
+	INSERT INTO mytable1 VALUES (1);
+	INSERT INTO mytable1 VALUES (2);
+     </programlisting>
+
+     <para>
+       Select:
+     </para>
+
+     <programlisting>
+	SELECT * FROM mytable1;
+     </programlisting>
+
+     <para>
+       If everything looks ok, you can drop the table:
+     </para>
+
+     <programlisting>
+	DROP TABLE mytable1;
+     </programlisting>
+  </sect1>
+
+  <sect1 id="start_db">
+     <title>Starting and Stopping Databases</title>
+
+     <para>
+       The commands gs-dbstart and gs-dbstop communicate with the gs-server
+       process and can be used to bring Stado databases online or offline.
+     </para>
+
+     <para>
+       Example:
+     </para>
+
+     <programlisting>
+	gs-dbstart.sh –d xtest –u admin –p &lt;password&gt;
+	gs-dbstop.sh –d xtest –u admin –p &lt;password&gt;
+     </programlisting>
+  </sect1>
+
+  <sect1 id="drop_db">
+     <title>Dropping Databases</title>
+
+     <para>
+       You can drop databases using the dropdb command. 
+     </para>
+
+     <para>
+       If the database is online, dropdb will fail, so you should first bring 
+       it offline with <literal>gs-dbstop</literal>:
+     </para>
+
+     <programlisting>
+	gs-dbstop.sh –d xtest –u admin –p &lt;password&gt;
+     </programlisting>
+
+     <para>
+       An example for dropping the xtest database appears below:
+     </para>
+
+     <programlisting>
+       gs-dropdb.sh -d xtest -u admin -p &lt;password&gt;
+     </programlisting>
+
+     <para>
+       It will attempt to drop the databases on the underlying nodes, as well 
+       as clean out any metadata information in the XDBSYS database. Please 
+       see dropdb in the Command Reference section of this document for more 
+       information.
+     </para>
+
+     <para>
+       If dropping fails for some reason, you may want to try again with “-f”
+      (force) option to continue and try and remove all metadata information 
+      from the metadata database, even if it failed to drop a database on a 
+      node.
+     </para>
+  </sect1>
+
+  <sect1 id="planning">
+     <title>Planning</title>
+
+     <para>
+       You are now ready to create your own databases. Please refer to 
+       important information in the Planning Guide for important information
+       regarding determining your database schema and partitioning strategies
+       before creating tables. A poorly thought out schema will result in less
+       than optimal performance.
+     </para>
+  </sect1>
+
+  <sect1 id="unicode">
+     <title>Multi-Language and Unicode Support</title>
+
+     <para>
+       Stado supports international character sets, provided the chosen 
+       underlying database supports it as well and is configured properly. 
+       For the current version, however, the Stado Metadata database does not 
+       support international identifiers, so all object names such as tables 
+       and columns must be standard identifiers using single-byte characters.
+     </para>
+
+     <para>
+       The following steps must be done in order to configure and support this 
+       properly
+     </para>
+
+   <orderedlist>
+      <listitem>
+         <para>
+           The underlying database needs to be configured properly. In 
+           PostgreSQL, unicode is enabled by default.
+         </para>
+      </listitem>
+      <listitem>
+         <para>
+           The JDBC Driver for the underlying database that Stado uses may 
+           require additional parameters.
+        </para>
+      </listitem>
+      <listitem>
+         <para>
+           The Stado server must be configured. If you intend to use 
+           international characters from some specific character set, you can
+           specify its name in <literal>stado.config</literal> configuration 
+           file, e.g.:
+         </para>
+      </listitem>
+   </orderedlist>
+
+     <programlisting>
+       xdb.charset=windows-1252
+     </programlisting>
+
+     <para>
+       The default for xdb.charset is ISO-8859-1.
+     </para>
+
+     <para>
+       If Unicode is desired, including support for various clients using 
+       different character sets, then add the following to the stado.config 
+       file:
+     </para>
+
+     <programlisting>
+       xdb.unicode=yes
+     </programlisting>
+  </sect1>
+
+  <sect1 id="ref">
+     <title>The stado.config Reference</title>
+
+     <para>
+       If you need to customize your particular installation, you can change 
+       the <literal>stado.config</literal> file.  
+     </para>
+
+     <para>
+       A table appears on the following pages describing all of the possible 
+       configuration options in <literal>stado.config</literal>. 
+     </para>
+
+    <sect2 id="server_settings">
+       <title>Server Settings</title>
+
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>log4j.configuration</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>
+                 Optional configuration file for logging preferences in log4j 
+                 format. Alternatively, configuration properties may also be 
+                 specified directly in the stado.config file. More information 
+                 about log4j appears later in this chapter.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.coordinator.node</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>
+                 The node to use for combining results from underlying nodes. 
+                 In practice, it is the node that corresponds to where the 
+                 Stado server is running, whether or not it is a dedicated 
+                 coordinator or not.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.longQuerySeconds</para>
+            </entry>
+            <entry>
+               <para>300</para>
+            </entry>
+            <entry>
+               <para>
+                 The threshold in number of seconds at which a query is 
+                 determined to be a long running query, and logged in the 
+                 long query log, if enabled. 
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.maxconnections</para>
+            </entry>
+            <entry>
+               <para>50</para>
+            </entry>
+            <entry>
+               <para>Maximum number of client connections to Stado to allow at a time.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.nodecount</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>The number of underlying nodes in the Stado cluster</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.port</para>
+            </entry>
+            <entry>
+               <para>6453</para>
+            </entry>
+            <entry>
+               <para>
+                 The port number that Stado will use to allow client processes 
+                 to connect to. If you have more than one gs-server running on
+                 the same coordinator node (one for development, one for 
+                 testing, for example), make sure they use different ports.
+               </para>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+    </sect2>
+
+    <sect2 id="metadata_settings">
+       <title>Metadata Database Settings</title>
+
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.metadata.jdbcdriver</para>
+            </entry>
+            <entry>
+               <para>org.postgresql.driver.Driver</para>
+            </entry>
+            <entry>
+               <para>The class name of the JDBC Driver to use with underlying metadata database</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.metadata.jdbcstring</para>
+            </entry>
+            <entry>
+               <para>jdbc:postgres://{dbhost}:{dbport}/{database}</para>
+            </entry>
+            <entry>
+               <para>A template JDBC url to use to connect to the underlying database. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.metadata.dbhost</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>
+                 The host name or IP address or the server that contains the 
+                 metadata database. In practice, it will often be the same one
+                 as where the Stado server runs.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.metadata.dbport</para>
+            </entry>
+            <entry>
+               <para>xdb.default.dbport</para>
+            </entry>
+            <entry>
+               <para>The port to connect to for the underlying database</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.metadata.database</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>The name of the metadata database, e.g. XDBSYS</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.metadata.jdbcuser</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>The user to use when connecting to the metadata database</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.metadata.jdbcpassword</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>The password to use when connecting to the metadata database</para>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+    </sect2>
+
+    <sect2 id="jdbc_settings">
+       <title>Authentication Settings</title>
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.authentication</para>
+            </entry>
+            <entry>
+               <para>password</para>
+            </entry>
+            <entry>
+               <para>Possible values are password and LDAP</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.ldap.provider_url</para>
+            </entry>
+            <entry>
+               <para></para>
+            </entry>
+            <entry>
+               <para>The LDAP provider URL to use if using LDAP 
+                     authentication, such as ldap://ldap.testathon.net:389
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.ldap.security_authentication</para>
+            </entry>
+            <entry>
+               <para>simple</para>
+            </entry>
+            <entry>
+               <para>The LDAP security authentication mode to pass to the LDAP server.
+                     The default, simple, means password.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.ldap.security_principal</para>
+            </entry>
+            <entry>
+               <para>{username}</para>
+            </entry>
+            <entry>
+               <para>The LDAP security principal value to pass to the LDAP server.
+                     Stado will substitute {username} in the string for the username
+                     we are trying to authenticate.
+                     An example string is:
+               </para>
+            </entry>
+            <entry>
+               <para>
+                     cn={username},ou=users,dc=testathon,dc=net
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.ldap.security_credentials</para>
+            </entry>
+            <entry>
+               <para>{password}</para>
+            </entry>
+            <entry>
+               <para>The LDAP security credentials to pass to the LDAP server.
+                     Stado will substitute {password} in the string.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.authentication.new_user.class</para>
+            </entry>
+            <entry>
+               <para>standard</para>
+            </entry>
+            <entry>
+               <para>If using outside authentication (LDAP), if the user is authenticated, 
+                     but does not exist in Stado, it will be created, and with this user class.
+                     Possible values are standard, resource and DBA (DBA is dangerous).
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.authentication.new_user.grant</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para>If we created a new Stado user after outside authentication, 
+                     this determines if we should grant permission on any tables
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.authentication.new_user.grant.select</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para>If we are granting any permissions for a auto-created user,
+                     this indicates if we grant SELECT privileges
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.authentication.new_user.grant.insert</para>
+            </entry>
+            <entry>
+               <para>false</para>
+            </entry>
+            <entry>
+               <para>If we are granting any permissions for a auto-created user,
+                     this indicates if we grant INSERT privileges
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.authentication.new_user.grant.update</para>
+            </entry>
+            <entry>
+               <para>false</para>
+            </entry>
+            <entry>
+               <para>If we are granting any permissions for a auto-created user,
+                     this indicates if we grant UPDATE privileges
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.authentication.new_user.grant.delete</para>
+            </entry>
+            <entry>
+               <para>false</para>
+            </entry>
+            <entry>
+               <para>If we are granting any permissions for a auto-created user,
+                     this indicates if we grant DELETE privileges
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.authentication.new_user.grant.tables</para>
+            </entry>
+            <entry>
+               <para>*</para>
+            </entry>
+            <entry>
+               <para>If we are granting any permissions for a auto-created user,
+                     this indicates a comma-separated list of which tables we 
+                     automatically grant on, default all ("*").
+               </para>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+    </sect2>
+
+    <sect2 id="jdbc_settings">
+       <title>JDBC and Pool Settings</title>
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.default.jdbcdriver</para>
+            </entry>
+            <entry>
+               <para>org.postgresql.driver.Driver</para>
+            </entry>
+            <entry>
+               <para>The default driver name to use for all connections</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.default.jdbcstring</para>
+            </entry>
+            <entry>
+               <para>jdbc:postgres://{dbhost}:{dbport}/{database}</para>
+            </entry>
+            <entry>
+               <para>The default jdbc url to use for all connections</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.default.dbport</para>
+            </entry>
+            <entry>
+               <para>5432</para>
+            </entry>
+            <entry>
+               <para>The default port to use when connecting to the underlying database.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.default.dbusername</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>The default username to use for all connections</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.default.dbpassword</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>The default password to use for all connections.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.default.threads.pool.initsize</para>
+            </entry>
+            <entry>
+               <para>5</para>
+            </entry>
+            <entry>
+               <para>Default thread pool size for all nodes.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.default.threads.pool.max_lifetime</para>
+            </entry>
+            <entry>
+               <para>600000</para>
+            </entry>
+            <entry>
+               <para>In milliseconds, how long to allow a thread to be active before destroying it.  This will not interrupt currently used threads, it is used once back in the pool.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.default.threads.pool.idle</para>
+            </entry>
+            <entry>
+               <para>300000</para>
+            </entry>
+            <entry>
+               <para>Default idle time in milliseconds.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.default.threads.pool.maxsize</para>
+            </entry>
+            <entry>
+               <para>10</para>
+            </entry>
+            <entry>
+               <para>Default max thread pool size for all nodes.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.default.threads.pool.timeout</para>
+            </entry>
+            <entry>
+               <para>60000</para>
+            </entry>
+            <entry>
+               <para>Default pool timeout for all nodes in milliseconds.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.jdbc.coordinator.pool.initsize</para>
+            </entry>
+            <entry>
+               <para>xdb.default.threads.pool.initsize</para>
+            </entry>
+            <entry>
+               <para>The initial size of the coordinator connection pool.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.jdbc.coordinator.pool.maxsize</para>
+            </entry>
+            <entry>
+               <para>xdb.default.threads.pool.maxsize * 0.8</para>
+            </entry>
+            <entry>
+               <para>The maximum size of the coordinator connection pool</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.jdbc.pool.maxsize</para>
+            </entry>
+            <entry>
+               <para>xdb.default.threads.pool.maxsize</para>
+            </entry>
+            <entry>
+               <para>
+                 Maximum number of connections per JDBC pool for underlying 
+                 node. Note that this is an important value for managing 
+                 simultaneous connections. You may still allow a large number
+                 of client connections via xdb.maxconnections, but you might
+                 want to limit how many simultaneous queries can execute on the
+                 underlying databases at the same time by limiting the pool 
+                 here. In addition, depending on your underlying database, you
+                 might have licensing restrictions that dictate a smaller pool
+                 size. The Stado Scheduler will handle sharing and managing of
+                 these pools.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.jdbc.pool.initsize        </para>
+            </entry>
+            <entry>
+               <para>xdb.default.threads.pool.initsize</para>
+            </entry>
+            <entry>
+               <para>Initial JDBC pool size</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.jdbc.pool.max_lifetime</para>
+            </entry>
+            <entry>
+               <para>xdb.default.threads.pool.max_lifetime</para>
+            </entry>
+            <entry>
+               <para>In milliseconds, how long to allow a JDBC connection to be active before destroying it.  This will not interrupt currently used threads, it is used once back in the pool.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.jdbc.pool.idle</para>
+            </entry>
+            <entry>
+               <para>xdb.default.threads.pool.idle</para>
+            </entry>
+            <entry>
+               <para>Default idle timeout value for JDBC Pool, in milliseconds. After this time, connections are released and pool is shrunk.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.jdbc.pool.timeout</para>
+            </entry>
+            <entry>
+               <para>xdb.default.threads.pool.timeout</para>
+            </entry>
+            <entry>
+               <para>Maximum time to wait for available jdbc connection from pool</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.jdbc.pool.largequery.count</para>
+            </entry>
+            <entry>
+               <para>2</para>
+            </entry>
+            <entry>
+               <para>
+                 The number of connections to allow for “large queries”. This 
+                 allows us to reserve some connections for low-cost commands, 
+                 in effect reserving connections for fast operations without 
+                 having to have them wait if all connections are being used 
+                 executing large queries. This also provides a mechanism for 
+                 allowing the DBA to be able to connect and administer the 
+                 server if it is very busy.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.jdbc.pool.largequery.threshold</para>
+            </entry>
+            <entry>
+               <para>25000</para>
+            </entry>
+            <entry>
+               <para>The cost at which a query will be designated as a “long” query. See xdb.jdbc.largequery.count for more details. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.node.n.dbhost</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>
+                 The host address of the underlying database that the node is 
+                 using, where n is the node id. In practice, the host will be 
+                 same as the node itself, but that is not required.
+               </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.node.n.dbport</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>The default port to use when connecting to the underlying database.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.node.n.jdbcdriver</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>The JDBC driver to use for node n, where n is the node id.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.node.n.jdbcstring</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>The JDBC URL template string used to connect to node n, where n is the node id.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.node.n.threads.pool.maxsize</para>
+            </entry>
+            <entry>
+               <para>10</para>
+            </entry>
+            <entry>
+               <para>Maximum thread execution pool size for node n. In practice, this should be set to the same value as xdb.jdbc.pool.initsize. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.node.n.threads.pool.initsize</para>
+            </entry>
+            <entry>
+               <para>5</para>
+            </entry>
+            <entry>
+               <para>Initial thread pool size for node id n. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.node.n.threads.pool.max_lifetime</para>
+            </entry>
+            <entry>
+               <para>600000</para>
+            </entry>
+            <entry>
+               <para>In milliseconds, how long to allow a thread to be active before destroying it.  This will not interrupt currently used threads, it is used once back in the pool.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.node.n.threads.pool.idle</para>
+            </entry>
+            <entry>
+               <para>300000</para>
+            </entry>
+            <entry>
+               <para>In milliseconds, how long to allow a thread to be active with no activity before destroying it.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.node.n.threads.pool.timeout</para>
+            </entry>
+            <entry>
+               <para>60000</para>
+            </entry>
+            <entry>
+               <para>In milliseconds, how long to wait on an available thread.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.nodeFetchSize</para>
+            </entry>
+            <entry>
+               <para>1000</para>
+            </entry>
+            <entry>
+               <para>The fetch size to use on the underlying connection.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.persist_on_set</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para>
+                 If the client connection issues a SET command, persist the 
+                 underlying connections. If persisted, these are not available
+                 from the pool, and may impact how many concurrent connections
+                 available.
+               </para>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+    </sect2>
+
+    <sect2 id="under_settings">
+       <title>Configuration for Underlying Databases</title>
+
+       <para>
+         <emphasis role="bold">Temp Table Handling</emphasis>
+       </para>
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.createTempTable.start</para>
+            </entry>
+            <entry>
+               <para>CREATE TEMP TABLE</para>
+            </entry>
+            <entry>
+               <para>Start of command for CREATE TABLE statement for creating temp table. Allows for alternate syntaxes like “CREATE TEMP TABLE”. See also xdb.tempTablePrefix. </para>
+               <para/>
+               <para>This is for temp tables that the end user specifies.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.createTempTable.suffix</para>
+            </entry>
+            <entry>
+               <para>WITHOUT OIDS</para>
+            </entry>
+            <entry>
+               <para>Suffix to add at the end of CREATE statements for temp tables. This can be used to allow disabling of logging information on the underlying database and greatly improve performance, since temporary tables are used internally by Stado.</para>
+               <para/>
+               <para>This is for temp tables that the user specifies.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.createGlobalTempTable.start</para>
+            </entry>
+            <entry>
+               <para>CREATE TABLE</para>
+            </entry>
+            <entry>
+               <para>This is used when creating internal temp tables by the database for query processing. </para>
+               <para/>
+               <para>Real tables are used, in order to access them across sessions.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.createGlobalTempTable.suffix</para>
+            </entry>
+            <entry>
+               <para>WITHOUT OIDS</para>
+            </entry>
+            <entry>
+               <para>The suffix to use when creating an internal temp table used for query processing.</para>
+               <para/>
+               <para>Default is an empty string.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.tempTablePrefix</para>
+            </entry>
+            <entry>
+               <para>TMPT</para>
+            </entry>
+            <entry>
+               <para>Temporary table prefix to use in underlying database. Various databases have different conventions, like “TEMP.” or “#”. </para>
+               <para/>
+               <para>Warning- be careful about assigning. On startup, Stado will try and delete any tables that start with this name, in case permanent tables were used and tables were not cleaned up due to a server error.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.allowtemptableindex</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para>Whether or not the underlying database allows the support of indexes on temporary tables.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.temporary_intermediate_tables</para>
+            </entry>
+            <entry>
+               <para>!xdb.use_load_for_step</para>
+            </entry>
+            <entry>
+               <para>If temporary intermediate tables were used. This is used for INSERT INTO.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.tempTableSelect</para>
+            </entry>
+            <entry>
+               <para>select tablename from pg_tables where tablename LIKE '{xdb.tempTablePrefix}%’</para>
+            </entry>
+            <entry>
+               <para>If “fake” temp tables are used on the underlying database (instead of actual temp tables), this value can be used to determine how to obtain a list of temp tables on the underlying nodes, to purge any tables at gs-server start-up, in case there are any remaining from previous execution that were not cleaned due to an error.</para>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+
+       <para>
+         <emphasis role="bold">SQL Command Templates</emphasis>
+       </para>
+
+       <para>
+         Below are command templates that can be overridden, along with their
+         defaults.
+       </para>
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.addcolumn</para>
+            </entry>
+            <entry>
+               <para>add {colname}</para>
+            </entry>
+            <entry>
+               <para>For adding columns within an ALTER TABLE command</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.addprimary</para>
+            </entry>
+            <entry>
+               <para>alter table {table} add constraint {constr_name} primary key({col_list})</para>
+            </entry>
+            <entry>
+               <para>For adding a primary key to a table</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.addforeignkey</para>
+            </entry>
+            <entry>
+               <para>alter table {table} add constraint {constr_name} foreign key ({col_list}) references {reftable}({col_map_list})</para>
+            </entry>
+            <entry>
+               <para>For adding a foreign key to a table</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropcolumn</para>
+            </entry>
+            <entry>
+               <para>alter table {table} drop {colname}</para>
+            </entry>
+            <entry>
+               <para>For dropping a column</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropconstraint</para>
+            </entry>
+            <entry>
+               <para>drop constraint {constr_name}</para>
+            </entry>
+            <entry>
+               <para>Template for dropping a constraint within ALTER TABLE command.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropconstraint.check</para>
+            </entry>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropconstraint</para>
+            </entry>
+            <entry>
+               <para>Template for dropping a check constraint within ALTER TABLE command.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropconstraint.primary</para>
+            </entry>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropconstraint</para>
+            </entry>
+            <entry>
+               <para>Template for dropping a primary key constraint within ALTER TABLE command.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropconstraint.reference</para>
+            </entry>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropconstraint</para>
+            </entry>
+            <entry>
+               <para>Template for dropping a foreign key constraint within ALTER TABLE command.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropconstraint.unique</para>
+            </entry>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropconstraint</para>
+            </entry>
+            <entry>
+               <para>Template for dropping a unique key constraint within ALTER TABLE command.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.dropprimary</para>
+            </entry>
+            <entry>
+               <para>alter table {table} drop constraint {constr_name}</para>
+            </entry>
+            <entry>
+               <para>For dropping a primary key from a table</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.modifycolumn</para>
+            </entry>
+            <entry>
+               <para>alter table {table} alter {colname} type {coltype}</para>
+            </entry>
+            <entry>
+               <para>For modifying a column’s type</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.modifycolumn.dropdefault</para>
+            </entry>
+            <entry>
+               <para>alter {column} drop default</para>
+            </entry>
+            <entry>
+               <para>Used to indicate that a columns default should be removed</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.modifycolumn.dropnotnull</para>
+            </entry>
+            <entry>
+               <para>alter {column} drop not null</para>
+            </entry>
+            <entry>
+               <para>Used to indicate a column should no longer be NOT NULL.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.modifycolumn.setdefault</para>
+            </entry>
+            <entry>
+               <para>alter {column} set default {default_expr}</para>
+            </entry>
+            <entry>
+               <para>Used to modify the default value of a column</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.modifycolumn.setnotnull</para>
+            </entry>
+            <entry>
+               <para>alter {column} set not null</para>
+            </entry>
+            <entry>
+               <para>Used to indicate a column should be set to not null</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.altertable.modifycolumn.using</para>
+            </entry>
+            <entry>
+               <para>using {using_expr}</para>
+            </entry>
+            <entry>
+               <para>An expression for modifying the column</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.altertable</para>
+               <para>.settablespace</para>
+            </entry>
+            <entry>
+               <para>set tablespace {tablespace}</para>
+            </entry>
+            <entry>
+               <para>Partial command template for setting tablespace</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.altertable</para>
+               <para>.settablespace.toparent</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.analyze.template.table</para>
+            </entry>
+            <entry>
+               <para>ANALYZE {table}</para>
+            </entry>
+            <entry>
+               <para>The UPDATE STATISTICS or ANALYZE command template to run on the underlying database to update internal statistics on a table used by the optimizer.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.analyze.template</para>
+               <para>.column</para>
+            </entry>
+            <entry>
+               <para>ANALYZE {table} ({column_list})</para>
+            </entry>
+            <entry>
+               <para>Other ANALYZE command template when columns are also specified.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.dropindex</para>
+            </entry>
+            <entry>
+               <para>drop index {index_list}</para>
+            </entry>
+            <entry>
+               <para>Command to use when dropping indexes</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.renametable.template</para>
+               <para> </para>
+            </entry>
+            <entry>
+               <para>ALTER TABLE {oldname} RENAME TO {newname}</para>
+            </entry>
+            <entry>
+               <para>Format of command to rename table. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.selectinto.template</para>
+            </entry>
+            <entry>
+               <para>CREATE TABLE {newname} AS SELECT * FROM {oldname}</para>
+            </entry>
+            <entry>
+               <para>Cammnd to use for SELECT INTO implementation</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.selectintotemp</para>
+               <para>.template</para>
+            </entry>
+            <entry>
+               <para>CREATE TEMP TABLE {newname} AS SELECT * FROM {oldname}</para>
+            </entry>
+            <entry>
+               <para>Cammnd to use for SELECT INTO implementation when using temp tables</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.updatestatistics.template.table</para>
+            </entry>
+            <entry>
+               <para>VACUUM ANALYZE {table} </para>
+            </entry>
+            <entry>
+               <para>The UPDATE STATISTICS or ANALYZE command template to run on the underlying database to update internal statistics on a table used by the optimizer. </para>
+               <para/>
+               <para>Example template:</para>
+               <para/>
+               <para>UPDATE STATISTICS {table}  </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.updatestatistics.template.column</para>
+            </entry>
+            <entry>
+               <para>VACUUM ANALYZE {table} ({column_list})</para>
+            </entry>
+            <entry>
+               <para>The UPDATE STATISTICS or ANALYZE command template to run on the underlying database to update internal statistics on a table’s column used by the optimizer. It will process those columns that were explicitly specified in the Stado command. Example template:</para>
+               <para/>
+               <para>UPDATE STATISTICS COLUMN {column_list} FOR {table}</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.updatestatistics.query</para>
+            </entry>
+            <entry>
+               <para>SELECT stadistinct </para>
+               <para>FROM pg_statistic s, pg_class c, pg_attribute a </para>
+               <para>WHERE s.starelid = c.oid </para>
+               <para>AND s.staattnum = a.attnum </para>
+               <para>AND c.relname = ‘{table}’</para>
+               <para>AND a.attname = ‘{column}’</para>
+            </entry>
+            <entry>
+               <para>When calculating statistics, the server will try and run the corresponding command on the underlying database, but when finished, it may be able to determine the selectivity from the underlying database without having to resort to calculating it itself. If this parameter is set, it defines a command to obtain the statistics from the underlying database. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.update.correlatedstyle</para>
+               <para/>
+            </entry>
+            <entry>
+               <para>2</para>
+            </entry>
+            <entry>
+               <para>This is need for the UPDATE command to work properly for correlated updates. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand.vacuum.template.table</para>
+            </entry>
+            <entry>
+               <para>VACUUM {vacuum_type} {table}</para>
+            </entry>
+            <entry>
+               <para>The command to execute for vacuuming.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.vacuum.analyze.template.table</para>
+            </entry>
+            <entry>
+               <para>VACUUM {vacuum_type} ANALYZE {table}</para>
+            </entry>
+            <entry>
+               <para>The command to execute for vacuuming with anaylze.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sqlcommand</para>
+               <para>.vacuum.analyze.template.column</para>
+            </entry>
+            <entry>
+               <para>VACUUM {vacuum_type} ANALYZE {table} ({column_list})</para>
+            </entry>
+            <entry>
+               <para>The command to execute for vacuuming with analyze with columns specified.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+
+       <para>
+         <emphasis role="bold">Date and Time Settings</emphasis>
+       </para>
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.subsecondPrecision</para>
+            </entry>
+            <entry>
+               <para>0</para>
+            </entry>
+            <entry>
+               <para>The number of digits for subsecond precision that the underlying database supports.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+
+       <para>
+         <emphasis role="bold">Other Settings</emphasis>
+       </para>
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+          <row>
+            <entry>
+               <para>xdb.allow.multistatement.query</para>
+            </entry>
+            <entry>
+               <para>TRUE</para>
+            </entry>
+            <entry>
+               <para>If true, allows multiple commands separated by semicolon to be sent together</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.client_encoding.ignore</para>
+            </entry>
+            <entry>
+               <para>false</para>
+            </entry>
+            <entry>
+               <para>client_encoding can only be UNICODE. If this setting is true, then it will not report an error when trying to set to something other than UNICODE. This is to support certain 3rd party apps and drivers. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.combined.resultset.buffer</para>
+            </entry>
+            <entry>
+               <para>1000</para>
+            </entry>
+            <entry>
+               <para>Default read-ahead buffer per ResultSet when combining</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.connectiontest.statement</para>
+            </entry>
+            <entry>
+               <para>select 1</para>
+            </entry>
+            <entry>
+               <para>Statement to run against backend to verify that connection is still good.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.connectiontest.createtable</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>Statement to run to (if not null) to create a table to run a query against to test the connection via xdb.connectiontest.statement.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.identifier.case</para>
+            </entry>
+            <entry>
+               <para>lower</para>
+            </entry>
+            <entry>
+               <para>Default case to use for storing identifier metadata and on the backend databases when unquoted. Other options are “upper” and “preserve”</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.identifier.quote</para>
+            </entry>
+            <entry>
+               <para>"</para>
+            </entry>
+            <entry>
+               <para>Default quote character for identifiers. This is used for both open and close, unless overridden below.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.identifier.quote.open</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>Open quote character for identifiers</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.identifier.quote.close</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>Close quote character for identifiers</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.identifier.quote.escape</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>Escape quote character for identifiers</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.index.useAscDesc</para>
+            </entry>
+            <entry>
+               <para>false</para>
+            </entry>
+            <entry>
+               <para>Whether or not it is ok to use ASC or DESC in indexes.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.locks.readcommitted.mode</para>
+            </entry>
+            <entry>
+               <para>S</para>
+            </entry>
+            <entry>
+               <para>If using an isolation mode of read committed (the default), this can be fine tuned further.</para>
+               <para>S (Strict) indicates that only one UPDATE or DELETE statement may be executing at a time per table, which also helps prevent deadlocks. Setting this to L (Loose) allows for concurrent UPDATE and DELETE statements.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.max_group_hash_count</para>
+            </entry>
+            <entry>
+               <para>5</para>
+            </entry>
+            <entry>
+               <para>How many of the expressions in the group by clause to take into consideration for hashing when aggregating. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.savepointType</para>
+            </entry>
+            <entry>
+               <para>S</para>
+            </entry>
+            <entry>
+               <para>T = subtransaction, S = Savepoints. Although savepoints from the user’s point of view is currently not supported, this is used in working with the underlying database.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sort.case.sensitive</para>
+            </entry>
+            <entry>
+               <para>false</para>
+            </entry>
+            <entry>
+               <para>Whether or not the underlying database sorts in a case sensitive manner.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sort.nulls.style</para>
+            </entry>
+            <entry>
+               <para>2</para>
+            </entry>
+            <entry>
+               <para>How nulls are handled in sorting on the underlying database.</para>
+               <para/>
+               <para>0-Nulls always at start</para>
+               <para>1-Nulls always at end</para>
+               <para>2-Null greater than not null </para>
+               <para>3-Null less than not null</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sort.trim</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para>Whether or not leading spaces are ignored in sorting</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.sql.usecrossjoin</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para>Whether or not to use CROSS JOIN syntax for Cartesian products. If overridden to false, syntax used will be “table1, table2” instead.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.strip_interval_quote</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para>When passing interval constants to the backend, whether or not to quote them in single quotes, such as INTERVAL ‘1 day’.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.xrowid.type</para>
+               <para> </para>
+            </entry>
+            <entry>
+               <para>DECIMAL(31,0)   </para>
+            </entry>
+            <entry>
+               <para>The xrowid settings allow for customization for databases that support varying levels of precision. xrowid is the Stado internal unique tuple identifier.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.xrowid.SQLtype</para>
+            </entry>
+            <entry>
+               <para>3</para>
+            </entry>
+            <entry>
+               <para>java.sql.Types.DECIMAL</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.xrowid.length</para>
+            </entry>
+            <entry>
+               <para>0</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.xrowid.precision</para>
+            </entry>
+            <entry>
+               <para>31</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.xrowid.scale</para>
+            </entry>
+            <entry>
+               <para>0</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+
+       <para>
+         <emphasis role="bold">Gateway Settings for Administering Underlying Databases</emphasis>
+       </para>
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.gateway.createdb</para>
+            </entry>
+            <entry>
+               <para>createdb -h {dbhost} –p {dbport} -U {dbusername} -O {dbusername} {database} </para>
+            </entry>
+            <entry>
+               <para>Template command for creating a new database on underlying database</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.gateway.dropdb</para>
+            </entry>
+            <entry>
+               <para>dropdb -h {dbhost} -p {dbport} -U {dbusername} {database}</para>
+            </entry>
+            <entry>
+               <para>Template command for dropping database on nodes</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.gateway.path</para>
+            </entry>
+            <entry>
+               <para>null</para>
+            </entry>
+            <entry>
+               <para>Path to use when trying to execute gateway commands. If not set, it will use whatever is found in user's PATH environment.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.gateway.path.separator</para>
+            </entry>
+            <entry>
+               <para>/</para>
+            </entry>
+            <entry>
+               <para>The path separator used for gateway commands.</para>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+
+       <para>
+         <emphasis role="bold">gs-loader settings</emphasis>
+       </para>
+
+   <informaltable frame="all">
+      <tgroup cols="3">
+        <tbody>
+          <row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.dataprocessors.count</para>
+            </entry>
+            <entry>
+               <para>1</para>
+            </entry>
+            <entry>
+               <para>The number of processor threads to use internally when performing COPY. Increasing this may help in multi-core/multi-processor systems.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.header.columnseparator</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>Optional separator for header for output file if exporting.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.header.template</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>Optional template for output file.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.footer.columnseparator</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>Optional separator for file footer for output file if exporting.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.footer.template</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>Optional file footer template if exporting.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.intermediate.commit</para>
+               <para>.interval</para>
+            </entry>
+            <entry>
+               <para>0</para>
+            </entry>
+            <entry>
+               <para>When shipping intermediate results, the commit interval to use, if xdb.use_load_for_step is set to false. If non-zero and used, this should be set fairly high, like 100000.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.nodewriter.columninfo</para>
+            </entry>
+            <entry>
+               <para>({columns})</para>
+            </entry>
+            <entry>
+               <para>Column info template to use if column names explicitly specified on load</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.nodewriter.columninfo.</para>
+               <para>none</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>Template to use if no column names present</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.nodewriter.delimiterinfo</para>
+            </entry>
+            <entry>
+               <para>DELIMITER AS '{delimiter}'</para>
+            </entry>
+            <entry>
+               <para>Template to be used within xdb.loader.nodewrite.template, for specifying passing along delimiter information.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.nodewriter.delimiterinfo.none</para>
+            </entry>
+            <entry>
+               <para>DELIMITER AS '\|\'</para>
+            </entry>
+            <entry>
+               <para>delimiterinfo template to use when the user did not specify any delimiter. Default null.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.nodewriter.template</para>
+            </entry>
+            <entry>
+               <para>psql -h {dbhost} -p {dbport} -d {database} -U {dbusername} -a -e -E -c \"COPY {table} {columninfo} FROM STDIN WITH NULL AS '' {delimiterinfo}\""</para>
+            </entry>
+            <entry>
+               <para>This is used for bulk loading data into the underlying database, and describes the template of the command to use. Note that another template, delimiterinfo can be included here. See xdb.loader.</para>
+               <para>nodewriter.delimiterinfo for more information</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.nodewriter.rowdelimiter</para>
+            </entry>
+            <entry>
+               <para>\n</para>
+            </entry>
+            <entry>
+               <para>Row separator</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.nodewriter</para>
+               <para>.use_jdbc_copy_api</para>
+            </entry>
+            <entry>
+               <para>TRUE</para>
+            </entry>
+            <entry>
+               <para>Indicates if COPY over JDBC should be used when shipping rows.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.row.nullvalue</para>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para>Null value indicator in loading data</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.row.quote</para>
+            </entry>
+            <entry>
+               <para>(none)</para>
+            </entry>
+            <entry>
+               <para>Indicates that strings are to be quoted with the specified character when loading data.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.row.quote.escape</para>
+            </entry>
+            <entry>
+               <para>(none)</para>
+            </entry>
+            <entry>
+               <para>Quote escape character</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.row.template</para>
+            </entry>
+            <entry>
+               <para>{value_list}</para>
+            </entry>
+            <entry>
+               <para>Row template for output file</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.loader.row.columnseparator</para>
+            </entry>
+            <entry>
+               <para>,</para>
+            </entry>
+            <entry>
+               <para>The default column separator character to use when loading in data.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.use_copy_out_for_step</para>
+            </entry>
+            <entry>
+               <para>xdb.use_load_for_step</para>
+            </entry>
+            <entry>
+               <para>When doing row shipping, whether or not to use COPY OUT,to avoid formatting overhead.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.use_load_for_step</para>
+            </entry>
+            <entry>
+               <para>y</para>
+            </entry>
+            <entry>
+               <para>Indicates if a native database bulk loader utility should be used for handling intermediate results. </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+            <entry>
+               <para/>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+    </sect2>
+
+   <sect2 id="datatypes">
+     <title>Data Types and Data Type Mapping</title>
+
+     <para>
+       Stado also includes the ability to map SQL data types, to allow for 
+       flexibility with various underlying databases, since the different 
+       databases sometimes name things differently than standard ANSI. Below
+       appears the data types supported and their default mappings, which can
+       be overridden in the <literal>stado.config</literal> file.
+     </para>
+
+       <para>
+         <emphasis role="bold">Numeric types:</emphasis>
+       </para>
+	
+       <programlisting>
+         xdb.sqltype.integer.map=INT
+         xdb.sqltype.smallint.map=SMALLINT
+         xdb.sqltype.boolean.map=BOOLEAN
+       </programlisting>
+
+       <para>
+         <emphasis role="bold">Floating point types (parameter "length" available):</emphasis>
+       </para>
+
+       <programlisting>
+         xdb.sqltype.float.map=FLOAT ({length})
+         xdb.sqltype.real.map=REAL ({length})
+         xdb.sqltype.double.map=DOUBLE PRECISION
+       </programlisting>
+
+       <para>
+         <emphasis role="bold">Fixed point types (parameters "precision" and "scale" available):</emphasis>
+       </para>
+
+       <programlisting>
+         xdb.sqltype.fixed.map=FIXED ({precision}, {scale})
+         xdb.sqltype.numeric.map=NUMERIC ({precision}, {scale})
+         xdb.sqltype.decimal.map=DEC ({precision}, {scale})
+       </programlisting>
+
+       <para>
+         <emphasis role="bold">Character types (parameter "length" available):</emphasis>
+       </para>
+
+       <programlisting>
+         xdb.sqltype.char.map=CHAR ({length})
+         xdb.sqltype.varchar.map=VARCHAR ({length})
+         xdb.sqltype.nchar.map=CHAR ({length}) UNICODE
+         xdb.sqltype.nvarchar.map=VARCHAR ({length}) UNICODE
+       </programlisting>
+
+       <para>
+         <emphasis role="bold">Date and Time types:</emphasis>
+       </para>
+
+       <programlisting>
+         xdb.sqltype.time.map=TIME
+         xdb.sqltype.date.map=DATE
+         xdb.sqltype.timestamp.map=TIMESTAMP
+       </programlisting>
+
+       <para>
+         <emphasis role="bold">Partitioning</emphasis>
+       </para>
+
+       <para>
+         Some types of columns can be partitioned on and others cannot be by 
+         default. That is because inexact data types like FLOAT can be 
+         problematic. Some optional settings allow these to be configured.
+       </para>
+
+   <informaltable frame="all">
+      <tgroup cols="3"><tbody><row>
+            <entry>
+               <para><emphasis role="bold">Configuration Value</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Default</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.allow.partition.integer</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para>Columns of this type can be the table’s designated partitioning key</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.allow.partition.char</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para>Columns of this type can be the table’s designated partitioning key</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.allow.partition.decimal</para>
+            </entry>
+            <entry>
+               <para>true</para>
+            </entry>
+            <entry>
+               <para>Columns of this type can be the table’s designated partitioning key</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.allow.partition.float</para>
+            </entry>
+            <entry>
+               <para>false</para>
+            </entry>
+            <entry>
+               <para>Columns of this type can be the table’s designated partitioning key</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>xdb.allow.partition.datetime</para>
+            </entry>
+            <entry>
+               <para>false</para>
+            </entry>
+            <entry>
+               <para>Columns of this type can be the table’s designated partitioning key</para>
+            </entry>
+         </row>
+       </tbody>
+     </tgroup>
+   </informaltable>
+    </sect2>
+
+   <sect2 id="functions">
+     <title>Function Mapping</title>
+
+     <para>
+       Stado’s recognized SQL is ANSI-92 in nature, along with the most common
+       functions found in most databases, especially PostgreSQL. However, it is
+       possible to also use additional functions that are supported by your 
+       underlying database when issuing SQL commands. This also includes any 
+       stored procedures or user-defined functions used, with the caveat that 
+       these should usually not access any tables directly because each will be
+       executed in isolation on the particular node.
+     </para>
+
+     <para>
+       By default, any functions not recognized will be executed on the 
+       underlying database directly. In some queries, it is necessary for Stado
+       to know the return type.  In those cases, it is best to define these in
+       the <literal>stado.config</literal> file. 
+     </para>
+
+     <para>
+       In addition, it is possible to override the definition for a 
+       Stado-recognized function and map it to the equivalent function on the 
+       underlying database.
+     </para>
+
+     <para>
+       To either define or override functions, use 
+       <literal>xdb.sqlfunction</literal>, followed by the function name, 
+       followed by following settings.
+     </para>
+
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>template</para>
+            </entry>
+            <entry>
+               <para>Used only if recognized function is being overridden or unknown function is being defined, maps the function to the underlying database</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>returntype</para>
+            </entry>
+            <entry>
+               <para>The return sql data type of the function</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>paramcount</para>
+            </entry>
+            <entry>
+               <para>The number of parameters the function takes</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>argn</para>
+            </entry>
+            <entry>
+               <para>Where n is 1, 2… the argument</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+
+     <para>
+       The SQL data types recognized are:
+     </para>
+
+     <programlisting>
+       CHAR, VARCHAR
+       DATE, TIME, TIMESTAMP
+       BYTE, SMALLINT, INTEGER, BIGINT
+       ANYINT, FLOAT, REAL, DOUBLE, NUMERIC, DECIMAL
+     </programlisting>
+
+     <para>
+       In addition, ANYCHAR, ANYDATETIME, ANYINT and ANYNUMBER are short-hand 
+       notations when more than one type is permissible:
+     </para>
+
+     <programlisting>
+       ANYCHAR = CHAR|VARCHAR
+       ANYDATETIME = DATE|TIME|TIMESTAMP
+       ANYINT = BYTE|SMALLINT|INTEGER|BIGINT
+       ANYNUMBER = ANYINT|FLOAT|REAL|DOUBLE|NUMERIC|DECIMAL
+     </programlisting>
+
+     <para>
+       For example, to define a function for SUBDATE(date, number_of_days) function:
+     </para>
+
+     <programlisting>
+       xdb.sqlfunction.subdate.template=DATE({arg1})-INTERVAL '{arg2} days'
+       xdb.sqlfunction.subdate.returntype=DATE
+       xdb.sqlfunction.subdate.paramcount=2
+       xdb.sqlfunction.subdate.arg1=DATE
+       xdb.sqlfunction.subdate.arg2=ANYNUMBER
+     </programlisting>
+    </sect2>
+
+   <sect2 id="logging">
+     <title>Logging</title>
+
+     <para>
+       Stado uses a popular library called log4j to implement its logging 
+       functionality. More detail can be found online here: 
+       http://logging.apache.org/log4j/docs/index.html. 
+     </para>
+
+     <para>
+       There are a few defined “loggers” that are used: console, Server, QUERY,
+       and LONGQUERY. The console logger is used for errors and warnings. 
+       Server is used for significant server events. QUERY allows you to log 
+       all SQL requests to the database, which can be useful in 
+       troubleshooting. LONGQUERY allows you to log those requests which seem 
+       to be taking a long time to execute, which is useful for a DBA to get
+       quickly to the source of which queries seem to be taking the most time 
+       to execute.
+     </para>
+
+     <para>
+       A request is determined to be “long” based on another 
+       <literal>stado.config</literal> value, 
+       <literal>xdb.longQuerySeconds</literal>, which should be set to the 
+       number of seconds at which point it will be logged in the LONGQUERY log.
+     </para>
+    </sect2>
+  </sect1>
+ </chapter>
+
+ <chapter id="privs">
+  <title>Users and Privileges</title>
+
+  <para>
+    Stado supports creation of users and privileges. 
+  </para>
+
+  <para>
+    It is important to distinguish between users at the Stado level, and those 
+    of the underlying databases. Stado does not in turn try and create those 
+    same users on the underlying databases. It always accesses the underlying 
+    database with the single user defined in the <literal>stado.config</literal>
+    file. Stado manages its own users and privileges for allowing access to the
+    tables.
+  </para>
+
+  <sect1 id="users">
+   <title>Users</title>
+
+   <para>
+     There are 3 classes of users: DBA, RESOURCE, and STANDARD. DBA users have 
+     Database Administration privileges. RESOURCE users can create tables. 
+     STANDARD users cannot create tables, but can access the database.
+   </para>
+
+   <para>
+    Users can be created with the CREATE USER command, and can be modified and 
+    dropped with the ALTER USER and DROP USER commands, respectively.
+   </para>
+  </sect1>
+
+  <sect1 id="privs">
+   <title>Privileges</title>
+
+   <para>
+     A user must be granted access to a table before being able to access it.
+     By default, a user who creates a table has all privileges on that table.
+   </para>
+
+   <para>
+     Privileges can be set on tables by using the GRANT and REVOKE commands.
+   </para>
+
+   <para>
+     More details on using these commands can be found in the Stado SQL 
+     Reference manual.
+   </para>
+
+   <para>
+     The following types of privileges are available:
+   </para>
+
+   <programlisting>
+     SELECT
+     INSERT
+     UPDATE
+     DELETE
+     REFERENCES
+     INDEX
+     ALTER
+   </programlisting>
+
+   <para>
+     Note that in the current version, Stado does not yet support ROLES.
+   </para>
+  </sect1>
+ </chapter>
+
+ <chapter id="backups">
+  <title>Redundancy, Backup and Recovery</title>
+
+  <sect1 id="redundancy">
+   <title>Redundancy</title>
+
+   <para>
+     The current version of Stado has no built-in redundancy, but this is a 
+     feature that will be added in the near future.  Keep in mind that the 
+     component most likely to fail is going to be a hard disk, and by using a
+     RAID configuration like RAID 0+1 or RAID-5, you are well protected against
+     such a failure.
+   </para>
+
+   <para>
+     You can achieve a high degree of redundancy, but without automatic 
+     failover. Stado will typically be used in reporting or data warehousing
+     type of scenarios so while important and will be added, it is not as 
+     critical as a high volume OLTP database.
+   </para>
+
+   <para>
+     One solution is to rely on HA solutions such as from Veritas or Red Hat. 
+   </para>
+
+   <para>
+     You could have your data out on a SAN, and have a stand-by node ready to
+     point to the failed node’s data. The <literal>stado.config</literal> file
+     would have to be modified for the node, and Stado stopped and restarted.
+   </para>
+
+   <para>
+    You can also replicate the metadata database and user-created databases on 
+    the nodes.
+   </para>
+
+   <para>
+    For replication, you can rely on Slony for a manual stand-by configuration.
+    Note that any schema changes (<literal>ALTER TABLE</literal>) may require 
+    re-snapshotting the modified table. To failover to a stand-by node, the 
+    node information is changed in <literal>stado.config</literal>, and Stado 
+    is stopped and restarted.
+   </para>
+
+   <para>
+    To make efficient use of the nodes in the cluster, you should consider 
+    creating the replicated copies of one node on another node. For example, 
+    node 1’s databases are replicated to node 2, node 2’s to node 3, and so on.
+   </para>
+  </sect1>
+
+  <sect1 id="load_balancing">
+   <title>Load Balancing</title>
+
+   <para>
+     Stado provides some amount of “load balancing” by virtue of the fact that
+     it parallelizes queries and leverages multiple nodes. This allows queries 
+     over large amounts of data to execute much faster than they would if they 
+     were just on a single system.
+   </para>
+
+   <para>
+     Also, above, we suggest creating stand-by databases on other nodes in the 
+     cluster that are also being used, for efficiency and cost savings, 
+     especially if OLTP activity is low.
+   </para>
+
+   <para>
+     Still, if dedicated replicated standby nodes were created manually in your 
+     system and you wish to make use of them for querying for better throughput, 
+     it is possible to do so by hand, with some effort, however. (Built-in load 
+     balancing is planned for future support.)
+   </para>
+
+   <para>
+     With the current version, you can execute multiple coordinators while 
+     keeping the following in mind:
+   </para>
+
+   <itemizedlist>
+     <listitem>
+       Your schema should be static. If doing schema changes, you should 
+       disable access temporarily to the second cluster until synchronized.
+     </listitem>
+     <listitem>
+       An IP-based load balancer that supports sticky connections can be 
+       used to distribute the load amongst the coordinators.
+     </listitem>
+   </itemizedlist>
+  </sect1>
+
+  <sect1 id="backups">
+   <title>Backup &amp; Recovery</title>
+
+   <para>
+     How backups are performed will depend greatly on the underlying database 
+     you are using. It is best to rely on the tools of the underlying database 
+     to backup nodes. That allows you to do restores on individual nodes and 
+     achieve parallelism while performing backups, as opposed to just doing a 
+     complete dump of all the data on all the nodes to a single destination. 
+   </para>
+
+   <para>
+     Many databases have the concept of full backups (backs up everything), 
+     incremental backups and log file backups.  This allows for different 
+     backup schedules. For example, you may wish to do a complete backup of all 
+     of the nodes once a week, and incremental backups every evening, or after 
+     a nightly load.
+   </para>
+
+   <para>
+     If you are in an environment where Stado houses a data warehouse or data 
+     mart that where no update or delete activity occurs, with just periodic 
+     loads, you can also have a backup schedule with periodic full backups of 
+     the database combined with backups of the regular import files.
+   </para>
+
+   <para>
+     Performing the backups can be done directly on the nodes using the 
+     database tools available for the underlying database. Alternatively, the 
+     execdb command can be used, which allows for the execution of the (nearly) 
+     exact same command on all of the underlying nodes. It makes use of the 
+     configuration value set for <literal>stado.config</literal> file for the 
+     particular database product being used.
+   </para>
+
+   <para>
+     An example for backing up PostgreSQL locally on each host appears below, 
+     assuming a secure environment has been been set up to use ssh (secure shell):
+   </para>
+
+   <programlisting>
+     execdb.sh -c "ssh –h {dbhost} 'pg_dump -h {dbhost} -U {dbusername} {database} 
+               -f /data/back/{database}.dump'" -d mydatabase -u stado -p password
+   </programlisting>
+
+
+   <para>
+     To recover a database, there are a couple of scenarios to consider. 
+     Typically, the problem will just be on a single node due to a hardware or 
+     software failure. If that is the case, use the tools of the underlying 
+     database to restore a complete backup if necessary, and any incremental 
+     backups and logs, as the case may be. See the documentation for your 
+     particular database product for details on how to do this.
+   </para>
+
+   <para>
+     Another scenario is that a recovery is required because of human error. In 
+     this case, all of the nodes may very well be affected and will need to be 
+     restored.
+   </para>
+  </sect1>
+ </chapter>
+
+ <chapter id="install">
+  <title>Installation</title>
+
+  <para>
+    In this section, commands used to administer Stado are described.
+  </para>
+
+  <para>
+    All of these are from classes in the Stado java jar files, but can be 
+    accessed more conveniently via the script wrappers in the bin directory. 
+    If using Linux or other Unix variant, append a “.sh” at the end of the 
+    commands listed here. 
+  </para>
+
+  <para>
+    Note that the scripts invoke java and specify the amount of memory to use 
+    for the JVM. In the event that you encounter the OutOfMemoryException, 
+    just increase the values specified for –Xmx.
+  </para>
+
+  <sect1 id="gs-cmdline">
+   <title>gs-cmdline</title>
+
+  <programlisting>
+    <![CDATA[
+    gs-cmdline.sh <connect> [-a] [-e] [-t] [-f inputfile] 
+    [-o connect_options] [-z]
+
+    <connect> is either a jdbcurl like,
+    -j jdbc:postgresql://<host>:<port>/<database>?user=<user>&password=<password>
+         or 
+   [-h <host>] [-s <port>] -d <database> -u <user> [-p <password>]
+
+    -a : add delimiter. If output mode is NORMAL, it will append an extra delimiter 
+         at the end of the last column when doing SELECT queries.
+    -e : echo mode. Echoes any statements as it executes them
+    -t : has effect of SET OUPUT NORMAL 
+        (turns off default table mode)
+    -f : input file to be executed, instead of interactive mode.
+    -z : display command execution times
+    ]]>
+  </programlisting>
+
+    <para>
+      The <literal>gs-cmdline</literal> utility is used to obtain a SQL command 
+      prompt and execute SQL commands like CREATE TALBE, SELECT and INSERT 
+      interactively. A complete list of SQL commands can be found in the SQL
+       Reference manual.  
+    </para>
+
+    <para>
+      Note that if you have installed PostgreSQL, you can also alternatively 
+      use psql. If you use either of these, be sure and include the appropriate 
+      Stado port option like –p 6453. In addition, if executing it on the same 
+      server where the coordinator is running, you must use the –h option to 
+      connect via sockets.
+    </para>
+
+    <para>
+      All commands issued should be terminated with “;”. To exit out of 
+      <literal>gs-cmdline</literal>, use “exit;”.
+    </para>
+
+    <para>
+      There are some additional administrative commands, which appear in the 
+      table below that can be used by the DBA.
+    </para>
+
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para><emphasis role="bold">Command</emphasis></para>
+            </entry>
+            <entry>
+               <para><emphasis role="bold">Description</emphasis></para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>SHOW DATABASES</para>
+            </entry>
+            <entry>
+               <para>Lists all of the user-created Stado databases </para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>SHOW TABLES</para>
+            </entry>
+            <entry>
+               <para>Lists all of the tables that exist in the current database</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>SHOW VIEWS</para>
+            </entry>
+            <entry>
+               <para>Lists all of the views that exist in the current database</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>SHOW TABLE &lt;table&gt;</para>
+            </entry>
+            <entry>
+               <para>Lists the columns and their definitions of the specified table</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>SHOW VIEW &lt;view&gt;</para>
+            </entry>
+            <entry>
+               <para>Displays the view definition for the specified view.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>SHOW INDEXES ON &lt;table&gt;</para>
+            </entry>
+            <entry>
+               <para>Lists all indexes for &lt;table&gt;</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>SHOW CONSTRAINTS ON &lt;table&gt;</para>
+            </entry>
+            <entry>
+               <para>Lists the following types of constraints for &lt;table&gt;: primary keys, foreign keys, foreign key references</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>SHOW USERS</para>
+            </entry>
+            <entry>
+               <para>Lists all defined users and their class</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>SHOW STATEMENTS</para>
+            </entry>
+            <entry>
+               <para>Lists all of the currently executing SQL statements</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>KILL &lt;request_id&gt;</para>
+            </entry>
+            <entry>
+               <para>Kills execution of the request id specified. Request ids can be obtained by executing the SHOW STATEMENTS command.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+  </sect1>
+
+  <sect1 id="gs-createdb">
+   <title>gs-createdb</title>
+
+   <programlisting>
+     gs-createdb.sh -d dbname
+            [-h host] [-s port]
+             -u dbusername [-p dbpassword]
+             -n nodelist
+            [-m]
+   </programlisting>
+
+   <para>
+     The <literal>gs-createdb</literal> command is used to create Stado 
+     databases. 
+   </para>
+
+   <para>
+     There are two modes of operation, standard and manual. In standard mode it 
+     will try and create the physical underlying databases on all of the 
+     specified nodes using PostgreSQL’s createdb command.
+   </para>
+
+   <para>
+     In manual mode, specified by the –m option, it will not try and create the 
+     underlying databases, but you are required to create them all by hand 
+     properly first.
+   </para>
+
+   <para>
+     Stado uses the naming convention of &lt;dbname&gt;N&lt;nodeid&gt; when 
+     naming the actual physical databases on the underlying nodes. So, if you 
+     run <literal>gs-createdb</literal> in manual mode, you should first create 
+     all databases and their names properly before running gs-createdb with –m 
+     to wire it up. This naming scheme means that you could create a logical 
+     multi-node system where all nodes are really on the same physical system- 
+     this is not recommended of course, but may be helpful in testing.
+   </para>
+
+   <para>
+     Note that some underlying databases have a limit to the number of 
+     characters that can be used when creating the database, so you may need to 
+     shorten the name you choose if it is rejected
+   </para>
+
+   <para>
+     The values of dbusername and dbpassword are used to validate that the user 
+     attempting to execute this command is a valid user with administrative 
+     (DBA) rights.
+   </para>
+
+   <para>
+     Note that if you are prompted by a password even with –p, it is the 
+     underlying tool, like psql that is prompting you for a password. This 
+     means you are executing <literal>gs-createdb</literal> under a user where 
+     a trusted PostgreSQL environment has not been configured. Be sure that 
+     it is configured for user stado, and execute the command as user stado.
+   </para>
+
+   <para>
+     The nodelist is a comma-separated list of node ids that must be valid 
+     nodes as defined in the <literal>stado.config</literal> file.
+   </para>
+
+   <para>
+     Note: in the current version, if <literal>gs-server</literal> is running,
+     it must be restarted after <literal>gs-createdb</literal> is executed to 
+     be able to use the new database and allow users to connect to it.
+   </para>
+
+   <para>
+     If something goes wrong on one of the nodes during creation (a slightly 
+     different configuration on a node, underlying database server not running, 
+     etc), it might be easiest to fix the problem as follows: drop the 
+     database with the <literal>gs-dropdb.sh</literal> command, and then try 
+     again to create. If you still have difficulty, retry gs-dropdb.sh with 
+     the –f option.
+   </para>
+  </sect1>
+
+  <sect1 id="gs-createmddb">
+   <title>gs-createmddb</title>
+
+   <programlisting>
+     gs-createmddb.sh 
+           -u dbusername [-p dbpassword]
+          [-m]
+   </programlisting>
+
+   <para>
+     The <literal>gs-createmddb</literal> command creates and initializes the 
+     metadata database.
+   </para>
+
+   <para>
+     It relies on the <literal>xdb.metadata.*</literal> values in the 
+     <literal>stado.config</literal> file being used, so it is important that 
+     this file is configured properly before executing. It will try and create 
+     the database <literal>xdb.metadata.database</literal> on the system 
+     <literal>xdb.metadata.dbhost</literal> using the command template for 
+     <literal>xdb.gateway.createdb</literal> (underlying database dependent).
+   </para>
+
+   <para>
+     After creating the database and running the optional initialization 
+     script, <literal>gs-createmddb</literal> will create all Stado metadata 
+     tables in the metadata database, connecting to it as determined by the 
+     <literal>xdb.metadata.*</literal> configuration values in the 
+     <literal>stado.config</literal> file. 
+   </para>
+
+   <para>
+     Using the “-m” option, manual mode, will just try and create the required 
+     tables without physically creating the database. This is useful if you 
+     want to create the metadata database yourself and then just need to 
+     initialize it by creating the required tables.
+   </para>
+
+   <para>
+     The <literal>gs-createmddb</literal> command also creates an initial 
+     administrative user used to administer the cluster. As a result, -u 
+     followed by a username must be included. If –p is left off, the user will 
+     be prompted for an initial password to be created.
+   </para>
+  </sect1>
+
+  <sect1 id="gs-dropdb">
+   <title>gs-dropdb</title>
+
+   <programlisting>
+     gs-dropdb.sh -d dbname 
+         [-h host] [-s port]
+          -u dbusername -p dbpassword [-f]
+   </programlisting>
+
+   <para>
+     The <literal>gs-dropdb</literal> command is used to drop databases.
+   </para>
+
+   <para>
+     The dbusername must be a DBA user who has privileges to drop the database.
+   </para>
+
+   <para>
+     The underlying databases are dropped as defined by the 
+     <literal>xdb.gateway.dropdb</literal> template in the 
+     <literal>stado.config</literal> file.
+   </para>
+
+   <para>
+     If there is a problem dropping the database, retry with the –f option 
+     (force). It will continue to try and remove the metadata from the 
+     metadata database even after a failure to remove any underlying databases,
+     and will continue to try and drop from all of the underlying nodes, even 
+     if it encounters an error on one.
+   </para>
+  </sect1>
+
+  <sect1 id="gs-agent">
+   <title>gs-agent</title>
+
+   <programlisting>
+     gs-agent.sh -n nodelist
+   </programlisting>
+
+   <para>
+     <literal>gs-agent</literal> starts the Stado Agent on a node participating 
+     in the cluster that has been installed and configured for agent use.
+   </para>
+
+   <para>
+     Using <literal>gs-agent</literal> on the nodes facilitates better 
+     scalability when more nodes are present in the cluster. Instead of the 
+     coordinator doing all the work in connecting directly with the underlying 
+     databases, each node can be responsible for one.
+   </para>
+
+   <para>
+     Each agent is started with –n, followed by its designated node number.
+   </para>
+
+   <para>
+     Like <literal>gs-server</literal>, <literal>gs-agent</literal> uses a 
+     <literal>stado.config</literal> file for its configuration, but it is much
+     smaller compared to <literal>gs-server</literal>’s. Once the agent 
+     connects to the coordinator, other configuration settings that are needed 
+     by the agent will be sent over by the coordinator.
+   </para>
+
+   <para>
+     It is recommended to start <literal>gs-server</literal> on the coordinator 
+     before trying to start <literal>gs-agent</literal>, but the agent can 
+     later be stopped and restarted without having to restart gs-server.
+   </para>
+  </sect1>
+
+  <sect1 id="gs-dbstart">
+   <title>gs-dbstart</title>
+
+   <programlisting>
+      gs-dbstart.sh -d dbname
+          [-h host] [-s socketport] 
+           -u dbauser [-p dbapassword]
+          [-w waittimeout]
+   </programlisting>
+
+   <para>
+     The <literal>gs-dbstart</literal> command is used to connect to an 
+     existing <literal>gs-server</literal> that is already running and bring the
+     database dbname online. Internally, it will tell 
+     <literal>gs-server</literal> to initialize all necessary pools and begin 
+     accepting connections for that database.
+   </para>
+
+   <para>
+     Which <literal>gs-server</literal> to connect to is determined by the host
+     and port specified. If no host is specified, localhost will be used by 
+     default. If no port is specified, 6453 will be used by default.
+   </para>
+
+   <para>
+     A username and password is required to connect with an existing 
+     <literal>gs-server</literal> process.
+   </para>
+
+   <para>
+     An optional waittime may be included to determine how long to wait before 
+     failing if a node is inaccessible.
+   </para>
+  </sect1>
+
+  <sect1 id="gs-dbstop">
+   <title>gs-dbstop</title>
+
+   <programlisting>
+     gs-dbstop.sh -d dbname
+          [-h host] [-s socketport] 
+           -u dbusername [-p dbpassword]
+   </programlisting>
+
+   <para>
+     The <literal>gs-dbstop</literal> command is used to connect to an existing 
+     <literal>gs-server</literal> that is already running and bring the 
+     database dbname offline. Internally, it will tell 
+     <literal>gs-server</literal> to free all related resources and stop 
+     accepting connections to that database.
+   </para>
+
+   <para>
+     The <literal>gs-server</literal> to connect to is determined by the host 
+     and port arguments. If no host is specified, localhost will be used by 
+     default. If no port is specified, 6453 will be used by default.
+   </para>
+
+   <para>
+     The user and password must be valid for that particular database.
+   </para>
+  </sect1>
+
+  <sect1 id="gs-server">
+   <title>gs-server</title>
+
+   <programlisting>
+     gs-server.sh [-d database_list]  [-x]
+   </programlisting>
+
+   <para>
+     <literal>gs-server</literal> is executed to start Stado.
+   </para>
+
+   <para>
+     The main configuration for the server appears in its corresponding 
+     <literal>stado.config</literal> file, which is found in 
+     <literal>$GSPATH/config</literal>. Please see “The 
+     <literal>stado.config</literal> File” section under Configuration in this
+     document for more details.
+   </para>
+
+   <para>
+     When starting the <literal>gs-server</literal>, a space-separated list of 
+     databases to bring online may be included with the –d option. A database 
+     must be brought online before clients can connect to it. If there already
+     is an <literal>gs-server</literal> instance running, Stado databases can 
+     also be brought online with the <literal>gs-dbstart</literal> command.
+   </para>
+
+   <para>
+     The –x option indicates that all of those Stado user databases specified
+     in the database list should be brought online on the underlying nodes. 
+   </para>
+
+   <para>
+     Note that when executing the <literal>gs-server</literal> process, you may 
+     need to modify the parameters that Java uses, increasing the maximum amount
+     of memory specified in the gs-server.sh launch script.
+   </para>
+  </sect1>
+
+  <sect1 id="gs-shutdown">
+   <title>gs-shutdown</title>
+
+   <programlisting>
+     gs-shutdown.sh [-h host ] [-s socketport] 
+                -u dbusername -p dbpassword
+               [-d dblist]
+   </programlisting>
+
+   <para>
+     <literal>gs-shutdown</literal> is executed to shutdown a Stado 
+     (<literal>gs-server</literal>) process. It is not to be confused with
+     <literal>gs-dbstop</literal>, which merely brings a database offline, 
+     while allowing the gs-server process to continue executing.
+   </para>
+
+   <para>
+     The <literal>gs-server</literal> to connect to is determined by the host 
+     and port specified. If no host is specified, localhost will be used by 
+     default. If no port is specified, 6453 will be used by default.
+   </para>
+
+   <para>
+     The user and password must be valid for that particular database.
+   </para>
+  </sect1>
+
+  <sect1 id="gs-loader">
+   <title>gs-loader and gs-impex</title>
+
+   <para>
+     The <literal>gs-impex</literal> utility allows for the importing and 
+     exporting of data, while <literal>gs-loader</literal> is targeted
+     exclusively for loading data.
+   </para>
+
+   <para>
+     There is a separate document, the Stado Import and Export Utilities 
+     manual, which provides more detail about using these commands.
+   </para>
+  </sect1>
+ </chapter>
+
+ <chapter id="isolation">
+  <title>Isolation Levels and Locking</title>
+
+  <para>
+    The four standard isolation levels are
+  </para>
+
+  <programlisting>
+    SERIALIZABLE 
+    REPEATABLE READ 
+    READ COMMITTED
+    READ UNCOMMITTED
+  </programlisting>
+
+  <para>
+    By default, Stado uses Read Committed mode (a transaction only sees those 
+    rows from the beginning of the transaction until it completes). The ANSI 
+    SQL standard allows for a more restrictive isolation level than the one 
+    specified, and Stado treats Read Uncommitted as Read Committed and 
+    Repeatable Read as Serializable.
+  </para>
+
+  <para>
+    Furthermore, even in Read Committed mode, by default Stado will use an 
+    exclusive table lock for Update and Delete statements. This can be 
+    overridden with the <literal>stado.config</literal> setting 
+    <literal>xdb.locks.readcommitted.mode</literal>. It is set to “S” (strict) 
+    by default, but can be overridden to “L” (loose), allowing for shared 
+    write locks on tables
+  </para>
+
+  <para>
+    If your particular environment does not have a lot of update activity, 
+    the default should work adequately. Using mode “L” is useful for ETL 
+    processes where multiple threads are used to update the same table, which
+    will result in much better performance. The downside of using mode “L” is 
+    the added risk that a deadlock may occur across nodes if multiple client 
+    sessions are updating the same rows in a transaction.
+  </para>
+ </chapter>
+
+ <chapter id="troubleshooting">
+  <title>Troubleshooting</title>
+
+  <para>
+    This section covers issues that you may encounter while using your Stado 
+    cluster, and offers possible solutions.
+  </para>
+
+  <sect1 id="install">
+   <title>Issues with Installation and Configuration</title>
+
+   <para>
+     <emphasis role="bold">
+       The script <literal>gs-createmddb.sh</literal> appears to hang
+     </emphasis>
+   </para>
+
+   <para>
+     This is due to a missing or misconfigured <literal>.pgpass</literal> or 
+     <literal>pgpass.conf</literal> file. Correct the problem, and try again.
+   </para>
+
+   <para>
+     <emphasis role="bold">
+       “Template in use” error when running <literal>gs-createmddb.sh</literal>
+       or <literal>gs-createdb.sh</literal>
+     </emphasis>
+   </para>
+
+   <para>
+     This is an error message from the underlying PostgreSQL database server,
+     and is caused when trying to create a new database when the template 
+     database is believed to be in use. Restart PostgreSQL, and try again.
+   </para>
+  </sect1>
+
+  <sect1 id="execution">
+   <title>Issues with Execution</title>
+
+   <para>
+     <emphasis role="bold">
+Connections, Pooling, and Timeouts
+     </emphasis>
+   </para>
+
+   <para>
+     Stado utilizes various thread and connection pools, and depending on their 
+     settings and your workload, you may encounter a timeout issue.
+   </para>
+
+   <para>
+     For the client connecting to the Stado server, keep in mind that there is 
+     a fixed limit to the maximum number of client connections. This is 
+     configured in the <literal>stado.config</literal> file via the 
+     <literal>xdb.maxconnections</literal> setting, where you can override the 
+     default setting.
+   </para>
+
+   <para>
+     Stado in turn uses pooled connections for communicating with the 
+     underlying databases on the nodes. The number of connections used for 
+     each node is determined via <literal>xdb.jdbc.pool.initsize</literal> and 
+     <literal>xdb.jdbc.pool.maxsize</literal>. You may also have to change the 
+     settings in the underlying database that you are using to accept more 
+     connections, if you use large values here.
+   </para>
+
+   <para>
+     If the number of client connections is larger than these pools, the 
+     requests will remain on the request queue for a longer period of time. 
+     (Even if the number of requests is smaller than the pools, some 
+     “expensive” requests may be not be executed right away by the scheduler to
+     try and both maximize throughput and be responsive for less expensive 
+     requests.)
+   </para>
+
+   <para>
+     In addition to the pool sizes, the pools have timeouts. If an executing 
+     request cannot obtain the needed connections after the time specified in 
+     milliseconds by <literal>xdb.jdbc.pool.timeout</literal>, the request 
+     will timeout.
+   </para>
+
+   <para>
+     Closely related to the JDBC pools are the thread pools, with settings 
+     <literal>xdb.default.threads.pool.maxsize</literal>, 
+     <literal>xdb.default.threads.pool.initsize</literal>, 
+     <literal>xdb.default.threads.pool.timeout</literal>. A request will only 
+     be executed if there are enough threads available in the pool. Normally 
+     the thread pool and jdbc pools should have the same size values.
+   </para>
+
+   <para>
+     You may also receive timeouts under very heavy query loads with many 
+     concurrent sessions. You can try increasing the values of 
+     <literal>xdb.messagemonitor.timeout.millis</literal> and 
+     <literal>xdb.messagemonitor.timeout.short.millis</literal>.
+   </para>
+
+
+   <para>
+     <emphasis role="bold">
+       “Cannot send data to nodes” error message
+     </emphasis>
+   </para>
+
+   <para>
+     If you receive the “cannot send data to nodes” error message, it is likely
+     that you have run into a memory resource issue. Try modifying the 
+     <literal>gs-server.sh</literal> script, increasing the values for 
+     MAXMEMORY and MINMEMORY, setting them both to the same value.
+   </para>
+
+   <para>
+     Also, ensure that <literal>/etc/security/limits.conf</literal> has been 
+     changed to increase the nofile setting.
+   </para>
+
+   <para>
+     If the problem is encountered only when there is a heavy load after 
+     modifying the above, there may not be enough memory to handle your load. 
+     In that case, reduce the number of concurrent queries that can execute 
+     simultaneously, by reducing thread and connection pools. The default for 
+     <literal>xdb.default.threads.pool.maxsize</literal> (10) should be quite
+     safe, but if you overrode this substantially, you should throttle it back
+     down. Note that more statements (and client connections) can be accepted
+     by Stado, it will just prioritize and queue them up, while limiting the 
+     number of concurrently executing queries.
+   </para>
+
+   <para>
+     If, however, you see this error message for even the simplest queries, 
+     there probably is a permissions issue between the nodes. Make sure 
+     permissions are setup properly, including the .pgpass file and the 
+     usernames and passwords used. 
+   </para>
+
+   <para>
+     If the problem persists, there may be a resource problem or a problem
+     with the underlying PostgreSQL database. Please check system logs (e.g., 
+     <literal>/var/log/syslog</literal>) and PostgreSQL log files.
+   </para>
+
+   <para>
+     <emphasis role="bold">
+       OutOfMemory Exception
+     </emphasis>
+   </para>
+
+   <para>
+     If you encounter this, you have run into a memory resource issue. Try 
+     modifying the <literal>gs-server.sh</literal> script, increasing the 
+     values for  MAXMEMORY and MINMEMORY, setting them both to the same value.
+   </para>
+
+
+   <para>
+     <emphasis role="bold">
+       Concurrent Performance Slow
+     </emphasis>
+   </para>
+
+   <para>
+     The intended usage for Stado is in a data-warehousing environment where 
+     heavy transaction activity is expected. Nonetheless, Stado still can 
+     process hundreds of low-cost statements per second over multiple client 
+     sessions.
+   </para>
+
+   <para>
+     For an individual session, Stado does add an extra hop and therefore 
+     latency. So, a single session will be much slower compared to a native 
+     PostgreSQL database for example. Keep in mind that individual session 
+     performance and total throughput are different things; over many sessions 
+     working concurrently, much greater total throughput can be achieved.
+   </para>
+ 
+   <para>
+     Please also read the chapter on isolation levels and locking. In 
+     particular, you can modify the setting 
+     <literal>xdb.locks.readcommitted.mode</literal> in the 
+     <literal>stado.config</literal> file, setting it to “L”.
+   </para>
+  </sect1>
+ </chapter>
+
+ <chapter id="appendices">
+  <title>Appendices</title>
+
+  <sect1 id="metadata_schema">
+   <title>Metadata Database Schema</title>
+
+    <programlisting>
+create table xsystablespaces (
+ tablespaceid int not null,
+ tablespacename varchar(255) not null,
+ ownerid int not null,
+ primary key(tablespaceid)
+)
+;
+create unique index idx_xsystablespaces_1
+ on xsystablespaces (tablespacename)
+;
+create table xsystablespacelocs (
+ tablespacelocid int not null,
+ tablespaceid int not null,
+ filepath varchar(1024) not null,
+ nodeid int not null,
+ primary key(tablespacelocid)
+)
+;
+create unique index idx_xsystablespacelocs_1
+ on xsystablespacelocs (tablespaceid, nodeid)
+;
+alter table xsystablespacelocs
+ add foreign key (tablespaceid) references xsystablespaces (tablespaceid)
+;
+create table xsysusers (
+  userid int not null,
+  username char(30) not null,
+  userpwd char(32) not null,
+  usertype char(8) not null, 
+  primary key (userid)
+)
+;
+create unique index idx_xsysusers_1 on xsysusers (username)
+;
+create table xsysdatabases
+(
+ dbid int not null,
+ dbname varchar(128) not null,
+ primary key (dbid)
+) 
+;
+create unique index idx_xsysdatabases_1
+ on xsysdatabases (dbname)
+;
+create table xsysdbnodes
+(
+ dbnodeid int not null,
+ dbid int not null,
+ nodeid int not null,
+ primary key (dbid, nodeid)
+)
+;
+create unique index idxnodes1 on xsysdbnodes (dbnodeid)
+;
+alter table xsysdbnodes
+ add foreign key (dbid) references xsysdatabases (dbid)
+;
+create table xsystables
+(
+ tableid int not null,
+ dbid integer not null,
+ tablename char(255) not null,
+ numrows int not null,
+ partscheme smallint not null, 
+ partcol char(255),    
+ parthash int,
+ owner int,
+ parented int,
+ tablespaceid int,
+ clusteridx varchar(80),
+ primary key (tableid)
+)
+;
+alter table xsystables
+ add foreign key (dbid) references xsysdatabases (dbid)
+;
+alter table xsystables
+ add foreign key (parentid) references xsystables (tableid)
+;        
+alter table xsystables
+ add foreign key (tablespaceid) references xsystablespaces (tablespaceid)
+;
+create table xsystabparts
+(
+ partid int not null,
+ tableid integer not null,
+ dbid integer not null,
+ nodeid int not null,
+ primary key (partid)
+)
+;
+alter table xsystabparts
+ add foreign key (tableid) references xsystables (tableid)
+;
+alter table xsystabparts
+ add foreign key (dbid, nodeid) references xsysdbnodes (dbid, nodeid)
+;
+create table xsystabparthash
+(
+ parthashid int not null,
+ tableid integer not null,
+ dbid integer not null,
+ hashvalue integer not null,
+ nodeid int not null,
+ primary key (parthashid)
+)
+;
+alter table xsystabparthash
+ add foreign key (tableid) references xsystables (tableid)
+;
+alter table xsystabparthash
+ add foreign key (dbid, nodeid) references xsysdbnodes (dbid, nodeid)
+;
+
+create table xsyscolumns
+(
+ colid serial,
+ tableid int not null,
+ colseq smallint not null,
+ colname varchar(255) not null,
+ coltype smallint not null,
+ collength int,
+ colscale smallint,
+ colprecision smallint,
+ isnullable smallint not null,
+ isserial smallint,
+ defaultexpr varchar(255),
+ checkexpr varchar(255),
+ selectivity float,
+ nativecoldef varchar(255), 
+ primary key (colid)
+)
+;
+alter table xsyscolumns
+ add foreign key (tableid) references xsystables (tableid)
+;
+create unique index idx_xsyscolumns_1
+ on xsyscolumns (tableid, colseq)
+;
+create table xsysindexes
+(
+ idxid int not null,
+ idxname varchar(80) not null,
+ tableid int not null,
+ keycnt smallint not null,
+ idxtype char(1),  
+ tablespaceid int, 
+ issyscreated smallint not null,
+ primary key (idxid)
+)
+;
+alter table xsysindexes
+ add foreign key (tableid) references xsystables (tableid)
+;
+alter table xsysindexes
+ add foreign key (tablespaceid) references xsystablespaces (tablespaceid)
+;
+create table xsysindexkeys
+(
+ idxkeyid int not null,
+ idxid int not null,
+ idxkeyseq int not null,
+ idxascdesc smallint not null, 
+ colid int not null,
+ primary key (idxkeyid)
+)
+;
+alter table xsysindexkeys
+ add foreign key (idxid) references xsysindexes (idxid)
+;
+alter table xsysindexkeys
+ add foreign key (colid) references xsyscolumns (colid)
+;
+create unique index idx_xsysindexkeys_1
+ on xsysindexkeys (idxid, idxkeyseq)
+;
+;
+create table xsysconstraints
+(
+ constid int not null,
+ constname varchar(128),  
+ tableid int not null,
+ consttype char(1) not null, 
+ idxid int,
+ issoft smallint not null,
+ primary key (constid)
+)
+;
+alter table xsysconstraints
+ add foreign key (tableid) references xsystables (tableid)
+;
+alter table xsysconstraints
+ add foreign key (idxid) references xsysindexes (idxid)
+;
+create table xsysreferences
+(
+ refid int not null,
+ constid int not null,
+ reftableid int not null,
+ refidxid int not null,  
+ primary key (refid)
+)
+;
+alter table xsysreferences
+ add foreign key (constid) references xsysconstraints (constid)
+;
+alter table xsysreferences
+ add foreign key (reftableid) references xsystables (tableid)
+;
+alter table xsysreferences
+ add foreign key (refidxid) references xsysindexes (idxid)
+;
+;
+create table xsysforeignkeys
+(
+ fkeyid int not null,
+ refid int not null,
+ fkeyseq int not null,
+ colid int not null,
+ refcolid int not null,
+ primary key (fkeyid)
+)
+;
+alter table xsysforeignkeys
+ add foreign key (refid) references xsysreferences (refid)
+;
+alter table xsysforeignkeys
+ add foreign key (colid) references xsyscolumns (colid)
+;
+alter table xsysforeignkeys
+ add foreign key (refcolid) references xsyscolumns (colid)
+;
+create unique index idx_xsysforeignkeys_1
+ on xsysforeignkeys (refid, fkeyseq)
+;
+create table xsystabprivs (
+ privid int not null,
+ userid int,
+ tableid int not null,
+ selectpriv char(1) not null,
+ insertpriv char(1) not null,
+ updatepriv char(1) not null,
+ deletepriv char(1) not null,
+ referencespriv char(1) not null,
+ indexpriv char(1) not null,
+ alterpriv char(1) not null,
+ primary key (privid)
+)
+;
+alter table xsystabprivs
+ add foreign key (userid) references xsysusers (userid)
+;
+alter table xsystabprivs
+ add foreign key (tableid) references xsystables (tableid)
+;
+create unique index idx_xsystabprivs_1
+ on xsystabprivs (userid, tableid)
+;
+alter table xsystables
+ add foreign key (owner) references xsysusers (userid)
+;
+create table xsysviews ( 
+ viewid int not null, 
+ dbid int not null, 
+ viewname varchar(255), 
+ viewtext varchar(7500))
+;
+create unique index idx_xsysviews_1 
+ on xsysviews (viewid)
+;
+alter table xsysviews 
+ add foreign key (dbid) references xsysdatabases (dbid)
+;
+create table xsysviewscolumns (
+ viewcolid int not null, 
+ viewid int not null,
+ viewcolseqno int not null,
+ viewcolumn varchar(255),
+ coltype smallint not null,
+ collength int,
+ colscale smallint,
+ colprecision smallint, 
+ primary key (viewcolid))
+;
+create unique index idx_sysviewscols_1 
+ on xsysviewscolumns (viewid, viewcolseqno)
+;
+alter table xsysviewscolumns 
+ add foreign key (viewid) references xsysviews (viewid)
+;
+create table xsysviewdeps   ( 
+ viewid int not null, 
+ columnid int not null, 
+ tableid int not null) 
+;
+alter table xsysviewdeps 
+ add foreign key (viewid) references xsysviews (viewid)
+;
+create table xsyschecks (
+ checkid int not null,
+ constid int not null,
+ seqno int not null,
+ checkstmt varchar(8000), 
+primary key (checkid))
+;
+create unique index idx_xsyschecks_1
+ on xsyschecks (constid, seqno)
+;
+alter table xsyschecks
+add foreign key (constid) references xsysconstraints (constid)
+;
+    </programlisting>
+
+  </sect1>
+ </chapter>
+
+</book>
+
