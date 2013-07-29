@@ -147,6 +147,11 @@ public class CreateMdDb {
                     + " add foreign key (tableid) references xsystables (tableid)",
             "alter table xsystabparthash"
                     + " add foreign key (dbid, nodeid) references xsysdbnodes (dbid, nodeid)",
+            
+            // Alvin: add an index, so that XdbServer won't take much time to start up when there
+            //        are too many tables (there will be many rows in table xsystabparthash)
+            "create index idx_tabparthash_1 on xsystabparthash ( tableid )",
+                    
             "create table xsyscolumns (" + " colid serial,"
                     + " tableid int not null," + " colseq smallint not null,"
                     + " colname varchar(128) not null,"
@@ -376,12 +381,6 @@ public class CreateMdDb {
                         "Could not connect to the database server", se2);
             }
         }
-        if (connection == null) {
-            throw new XDBServerException(
-                    "Could not initialize connection.: Please check if the underlying"
-                            + "database is running on the System");
-        }
-
         return connection;
 
     }
