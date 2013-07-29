@@ -26,7 +26,6 @@
 
 package org.postgresql.stado.common.util;
 
-import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;

@@ -29,7 +29,6 @@ import java.util.Vector;
 import org.postgresql.stado.metadata.SysColumn;
 import org.postgresql.stado.metadata.SysTable;
 import org.postgresql.stado.optimizer.QueryTree;
-import org.postgresql.stado.parser.handler.IdentifierHandler;
 
 public class DeclaredCursor {
 
@@ -39,11 +38,7 @@ public class DeclaredCursor {
 	
 	private boolean Materialized;
 	
-	private boolean Scrollable;
-	
-	private boolean Holdable;
-
-    private SysTable materializedTable = null;
+	private SysTable materializedTable = null;
     
     private Vector<String> columnList = null;
     
@@ -52,8 +47,6 @@ public class DeclaredCursor {
     public DeclaredCursor(String cursorName, QueryTree cursorTree, boolean isScrollable, boolean isHoldable) {
     	this.CursorName = cursorName;
     	this.CursorTree = cursorTree;
-    	this.Scrollable = isScrollable;
-    	this.Holdable = isHoldable;
     	this.Materialized = false;
     }
 

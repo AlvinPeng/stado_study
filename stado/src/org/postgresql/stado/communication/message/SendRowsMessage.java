@@ -33,7 +33,12 @@ package org.postgresql.stado.communication.message;
  */
 public class SendRowsMessage extends NodeMessage {
     
-    /** Parameterless constructor required for serialization */
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 816897695135460544L;
+
+	/** Parameterless constructor required for serialization */
     public SendRowsMessage() {
     }
 

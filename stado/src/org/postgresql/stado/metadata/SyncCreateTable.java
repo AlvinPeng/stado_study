@@ -140,8 +140,6 @@ public class SyncCreateTable implements IMetaDataUpdate {
         database = MetaData.getMetaData().getSysDatabase(client.getDBName());
 
         String sqlStatement;
-        ResultSet aTableRS;
-
         int indexid = -1;
         int refid = -1;
         int fkeyid = -1;

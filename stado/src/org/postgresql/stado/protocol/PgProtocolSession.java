@@ -1310,9 +1310,9 @@ public class PgProtocolSession implements Runnable {
 
             try {
                 client.bindStatement("", "", null);
-                ResponseMessage rm = client.describeStatement("", "");
+                client.describeStatement("", "");
 
-                ExecutionResult result = client.executeRequest("");
+                client.executeRequest("");
 
             } finally {
                 client.closeCursor("");

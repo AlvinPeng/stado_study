@@ -210,7 +210,7 @@ public class DbGateway {
 
     /**
      *
-     * Starts the database to the specified node
+     * Stops the database to the specified node
      *
      * @param valueMap
      *

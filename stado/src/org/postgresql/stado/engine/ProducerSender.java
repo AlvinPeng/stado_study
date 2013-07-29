@@ -403,8 +403,6 @@ public class ProducerSender {
             if (jdbcLock == null) {
                 jdbcLock = aResultSet.getStatement().getConnection();
             }
-            int iCount = 0;
-
             // Check to see if it can just go to a single node,
             // based on the next table to join with and its
             // partition column
@@ -462,8 +460,6 @@ public class ProducerSender {
             }
 
             while (hasRows) {
-                iCount++;
-
                 logger.log(
                         XLevel.TRACE,
                         "Converting data from columns, for connection: %0%, ResultSet %1%",

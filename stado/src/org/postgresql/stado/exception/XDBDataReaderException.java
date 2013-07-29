@@ -28,7 +28,12 @@ package org.postgresql.stado.exception;
  */
 public class XDBDataReaderException extends Exception {
 
-    /** Creates a new instance of XDBLoaderException */
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = -6858864697265869301L;
+
+	/** Creates a new instance of XDBLoaderException */
     public XDBDataReaderException() {
         super();
     }
