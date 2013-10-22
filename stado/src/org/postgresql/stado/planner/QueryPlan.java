@@ -4129,7 +4129,9 @@ public class QueryPlan
                 // See if we have already added it to CREATE TABLE
                 // BUT, always add it if it is an extra generated column
                 // or an aggregate function (as a workaround for now)
-                boolean isSelColumn = aLeaf.isProjection(aSqlExpression.getExprString());
+                // or a constant
+                boolean isSelColumn = aLeaf.isProjection(aSqlExpression.getExprString())
+                                   && !aSqlExpression.isConstantExpr();
 
                 if (!isSelColumn || aSqlExpression.isAdded()
                         || aSqlExpression.containsAggregates()
