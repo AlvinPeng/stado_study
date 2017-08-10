@@ -27,7 +27,10 @@ package org.postgresql.stado.engine;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+
 import org.apache.log4j.Level;
 import org.postgresql.stado.common.util.XLogger;
 import org.postgresql.stado.exception.XDBServerException;

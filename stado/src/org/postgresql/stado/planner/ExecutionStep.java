@@ -757,9 +757,13 @@ public class ExecutionStep {
                 }
             }
 
-            destNodeList = corrLeaf.queryNodeList;
-			// correlatedSendDownStepDetail.consumerNodeList =
-			// corrLeaf.queryNodeList;
+            if (corrLeaf != null) {
+                destNodeList = corrLeaf.queryNodeList;
+                // correlatedSendDownStepDetail.consumerNodeList =
+                // corrLeaf.queryNodeList;
+            } else {
+                destNodeList = null;
+            }
         } finally {
             logger.exiting(method);
         }
@@ -834,7 +838,11 @@ public class ExecutionStep {
                 }
             }
 
-            destNodeList = corrLeaf.queryNodeList;;
+            if (corrLeaf != null) {
+                destNodeList = corrLeaf.queryNodeList;;
+            } else {
+                destNodeList = null;
+            }
         } finally {
             logger.exiting(method);
         }
@@ -893,7 +901,11 @@ public class ExecutionStep {
                 }
             }
 
-            destNodeList = corrLeaf.queryNodeList;
+            if (corrLeaf != null) {
+                destNodeList = corrLeaf.queryNodeList;
+            } else {
+                destNodeList = null;
+            }
         } finally {
             logger.exiting(method);
         }

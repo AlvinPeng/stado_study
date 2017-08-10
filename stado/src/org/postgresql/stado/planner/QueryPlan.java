@@ -4131,7 +4131,7 @@ public class QueryPlan
                 // or an aggregate function (as a workaround for now)
                 // or a constant
                 boolean isSelColumn = aLeaf.isProjection(aSqlExpression.getExprString())
-                                   && !aSqlExpression.isConstantExpr();
+                        && !aSqlExpression.isConstantExpr();
 
                 if (!isSelColumn || aSqlExpression.isAdded()
                         || aSqlExpression.containsAggregates()

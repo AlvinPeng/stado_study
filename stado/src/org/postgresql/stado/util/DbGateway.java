@@ -26,8 +26,11 @@
 
 package org.postgresql.stado.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -111,7 +114,7 @@ public class DbGateway {
             return null;
         }
         String[] commandList = new String[nodeInfoList.length];
-        List<String> ret = new ArrayList<String>();
+        List<String> ret = new ArrayList();
 
         // Loop through node list, and create on nodes
         for (int i = 0; i < nodeInfoList.length; i++) {
@@ -210,7 +213,7 @@ public class DbGateway {
 
     /**
      *
-     * Stops the database to the specified node
+     * Starts the database to the specified node
      *
      * @param valueMap
      *
@@ -313,7 +316,7 @@ public class DbGateway {
 
         StreamGobbler out = null;
         StreamGobbler err = null;
-        List<String> ret = new ArrayList<String>();
+        List<String> ret = new ArrayList();
         
         for (int i = 0; i < command.length; i++) {
             // Java Runtime spawn a thread to execute the command, so all

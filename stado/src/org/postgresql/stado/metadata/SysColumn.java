@@ -178,7 +178,7 @@ public class SysColumn {
             break;
 
         case java.sql.Types.VARCHAR:
-        	colLength = this.collength;
+            colLength = this.collength;
             break;
 
         case java.sql.Types.SMALLINT:

@@ -32,6 +32,7 @@ import org.postgresql.stado.engine.XDBSessionContext;
 import org.postgresql.stado.exception.ColumnNotFoundException;
 import org.postgresql.stado.metadata.DBNode;
 import org.postgresql.stado.metadata.SysDatabase;
+import org.postgresql.stado.metadata.SysTable;
 import org.postgresql.stado.parser.Command;
 
 

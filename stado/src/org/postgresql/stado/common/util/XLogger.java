@@ -32,6 +32,7 @@ package org.postgresql.stado.common.util;
 import java.util.StringTokenizer;
 
 import org.apache.log4j.Level;
+import org.apache.log4j.Appender;
 
 /**
  * log4j wrapper class which has a lower "trace" level for detailed debugging.

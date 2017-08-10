@@ -1,0 +1,1632 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Stado SQL Reference</title><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="book" title="Stado SQL Reference"><div class="titlepage"><div><div><h1 class="title"><a name="stado_loader"></a><span class="productname">Stado<br></span> SQL Reference</h1></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="chapter"><a href="#intro">1. Introduction</a></span></dt><dd><dl><dt><span class="sect1"><a href="#overview">Overview</a></span></dt></dl></dd><dt><span class="chapter"><a href="#data_types">2. Data Types</a></span></dt><dt><span class="chapter"><a href="#id_lit">3. Identifiers &amp; Literals</a></span></dt><dt><span class="chapter"><a href="#expressions">4. Expressions</a></span></dt><dd><dl><dt><span class="sect1"><a href="#expressions">Expressions</a></span></dt></dl></dd><dt><span class="chapter"><a href="#operators">5. Operators</a></span></dt><dd><dl><dt><span class="sect1"><a href="#log_operators">Logical Operators</a></span></dt><dt><span class="sect1"><a href="#math_operators">Mathematical Operators</a></span></dt><dt><span class="sect1"><a href="#bit_operators">Bit Operators</a></span></dt><dt><span class="sect1"><a href="#date_operators">Date/Time Operators</a></span></dt></dl></dd><dt><span class="chapter"><a href="#functions">6. Functions</a></span></dt><dd><dl><dt><span class="sect1"><a href="#aggfunc">Aggregate Functions</a></span></dt><dt><span class="sect1"><a href="#statfunc">Statistical Aggregate Functions</a></span></dt><dt><span class="sect1"><a href="#mathfunc">Mathematical Functions</a></span></dt><dt><span class="sect1"><a href="#datefunc">Date &amp; Time Functions</a></span></dt><dt><span class="sect1"><a href="#stringfunc">String and Character Functions</a></span></dt><dt><span class="sect1"><a href="#otherfunc">Other Functions</a></span></dt><dt><span class="sect1"><a href="#spatialfunc">Spatial Functions</a></span></dt></dl></dd><dt><span class="chapter"><a href="#sql_cmds">7. SQL Commands</a></span></dt><dd><dl><dt><span class="sect1"><a href="#ddl">Data Definition Statements</a></span></dt><dd><dl><dt><span class="sect2"><a href="#create_tablespace">CREATE TABLESPACE</a></span></dt><dt><span class="sect2"><a href="#create_table">CREATE TABLE</a></span></dt><dt><span class="sect2"><a href="#drop_table">DROP TABLE</a></span></dt><dt><span class="sect2"><a href="#truc_table">TRUNCATE TABLE</a></span></dt><dt><span class="sect2"><a href="#add_column">ALTER TABLE &#8230; ADD COLUMN</a></span></dt><dt><span class="sect2"><a href="#drop_column">ALTER TABLE &#8230; DROP COLUMN</a></span></dt><dt><span class="sect2"><a href="#add_pk">ALTER TABLE &#8230; ADD PRIMARY KEY</a></span></dt><dt><span class="sect2"><a href="#add_fk">ALTER TABLE &#8230; ADD FOREIGN KEY</a></span></dt><dt><span class="sect2"><a href="#drop_const">ALTER TABLE &#8230; DROP CONSTRAINT</a></span></dt><dt><span class="sect2"><a href="#drop_pk">ALTER TABLE &#8230; DROP PRIMARY KEY</a></span></dt><dt><span class="sect2"><a href="#alter_column">ALTER TABLE &#8230; ALTER COLUMN</a></span></dt><dt><span class="sect2"><a href="#owner">ALTER TABLE &#8230; OWNER</a></span></dt><dt><span class="sect2"><a href="#set_tablespace">ALTER TABLE &#8230; SET TABLESPACE</a></span></dt><dt><span class="sect2"><a href="#rename_table">RENAME TABLE</a></span></dt><dt><span class="sect2"><a href="#create_index">CREATE INDEX</a></span></dt><dt><span class="sect2"><a href="#drop_index">DROP INDEX</a></span></dt><dt><span class="sect2"><a href="#cluster">CLUSTER</a></span></dt><dt><span class="sect2"><a href="#create_view">CREATE VIEW</a></span></dt><dt><span class="sect2"><a href="#drop_view"> DROP VIEW</a></span></dt></dl></dd><dt><span class="sect1"><a href="#dml">Data Manipulation Statements</a></span></dt><dd><dl><dt><span class="sect2"><a href="#insert">INSERT</a></span></dt><dt><span class="sect2"><a href="#update">UPDATE</a></span></dt><dt><span class="sect2"><a href="#delete">DELETE</a></span></dt><dt><span class="sect2"><a href="#select">SELECT</a></span></dt><dt><span class="sect2"><a href="#explain">EXPLAIN</a></span></dt></dl></dd><dt><span class="sect1"><a href="#copy">Importing and Exporting via COPY</a></span></dt><dt><span class="sect1"><a href="#users">Users and Privileges</a></span></dt><dd><dl><dt><span class="sect2"><a href="#create_user">CREATE USER</a></span></dt><dt><span class="sect2"><a href="#alter_user">ALTER USER</a></span></dt><dt><span class="sect2"><a href="#drop_user">DROP USER</a></span></dt><dt><span class="sect2"><a href="#grant">GRANT</a></span></dt><dt><span class="sect2"><a href="#revoke">REVOKE</a></span></dt></dl></dd><dt><span class="sect1"><a href="#other">Other Commands</a></span></dt><dd><dl><dt><span class="sect2"><a href="#show_db">SHOW DATABASES</a></span></dt><dt><span class="sect2"><a href="#show_tables">SHOW TABLES</a></span></dt><dt><span class="sect2"><a href="#show_views">SHOW VIEWS</a></span></dt><dt><span class="sect2"><a href="#show_table">SHOW TABLE table</a></span></dt><dt><span class="sect2"><a href="#show_view">SHOW VIEW view</a></span></dt><dt><span class="sect2"><a href="#show_indexes">SHOW INDEXES ON table</a></span></dt><dt><span class="sect2"><a href="#show_constraints">SHOW CONSTRAINTS ON table</a></span></dt><dt><span class="sect2"><a href="#show_users">SHOW USERS</a></span></dt><dt><span class="sect2"><a href="#show_statements">SHOW STATEMENTS</a></span></dt><dt><span class="sect2"><a href="#kill">KILL</a></span></dt><dt><span class="sect2"><a href="#analyze">ANALYZE</a></span></dt><dt><span class="sect2"><a href="#vacuum">VACUUM</a></span></dt><dt><span class="sect2"><a href="#exec_direct">EXECUTE DIRECT</a></span></dt></dl></dd></dl></dd></dl></div><div class="chapter" title="Chapter 1. Introduction"><div class="titlepage"><div><div><h2 class="title"><a name="intro"></a>Chapter 1. Introduction</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="#overview">Overview</a></span></dt></dl></div><div class="sect1" title="Overview"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="overview"></a>Overview</h2></div></div></div><p>
+     Stado&#8217;s supported SQL is very similar to that of PostgreSQL. To be clear, 
+     using Stado in conjunction with the underlying database does not mean that
+     you will have access to the full functionality of that particular 
+     database. Nonetheless, Stado allows for a lot of customization in the 
+     <code class="literal">stado.config</code> file to allow the DBA to define additional
+     functions as well as map Stado commands to the underlying database.
+   </p><p>
+     This is not intended to be a comprehensive analysis of the SQL language, 
+     but is intended to provide information regarding the supported SQL and its
+     syntax, and to point out noteworthy Stado implementation details to bear 
+     in mind.
+   </p></div></div><div class="chapter" title="Chapter 2. Data Types"><div class="titlepage"><div><div><h2 class="title"><a name="data_types"></a>Chapter 2. Data Types</h2></div></div></div><p>
+     The following data types are supported:
+   </p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Data Type</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Comments</strong></span></p>
+            </td></tr><tr><td>
+               <p>BIGINT, INT8</p>
+            </td><td>
+               <p></p>
+            </td></tr><tr><td>
+               <p>BIT, VARBIT</p>
+            </td><td>
+               <p></p>
+            </td></tr><tr><td>
+               <p>BLOB, BINARY, BYTE, IMAGE, RAW, LONG RAW, VARBINARY</p>
+            </td><td>
+               <p>Maps to BYTEA</p>
+            </td></tr><tr><td>
+               <p>BOOLEAN</p>
+            </td><td>
+               <p>(May not be supported by all underlying databases)</p>
+            </td></tr><tr><td>
+               <p>CHAR[ACTER] (length)</p>
+            </td><td>
+               <p>Width is fixed to length. </p>
+            </td></tr><tr><td>
+               <p>CIDR</p>
+            </td><td>
+               <p>IPv4 and IPv6 networks</p>
+            </td></tr><tr><td>
+               <p>DATE</p>
+            </td><td>
+               <p>Accepts format YYYY-MM-DD or YYYYMMDD</p>
+            </td></tr><tr><td>
+               <p>DATETIME</p>
+            </td><td>
+               <p>Combination of date and time</p>
+            </td></tr><tr><td>
+               <p>DOUBLE PRECISION, FLOAT8</p>
+            </td><td>
+               <p>8 byte floating point number</p>
+            </td></tr><tr><td>
+               <p>DEC[IMAL] (length, decimals) </p>
+            </td><td>
+               <p>Mapped to NUMERIC</p>
+            </td></tr><tr><td>
+               <p>FLOAT[ (length, decimals)], SMALLFLOAT, FLOAT4 </p>
+            </td><td>
+               <p></p>
+            </td></tr><tr><td>
+               <p>INET</p>
+            </td><td>
+               <p>IPv4 and Ipv6 hosts and networks</p>
+            </td></tr><tr><td>
+               <p>INT[EGER], INT4</p>
+            </td><td>
+               <p></p>
+            </td></tr><tr><td>
+               <p>INTERVAL </p>
+               <p>  [YEAR|MONTH|DAY|HOUR|MINUTE</p>
+               <p> TO</p>
+               <p>   YEAR|MONTH|DAY|HOUR|MINUTE]</p>
+            </td><td>
+               <p>For time intervals</p>
+            </td></tr><tr><td>
+               <p>MACADDR</p>
+            </td><td>
+               <p>MAC addresses</p>
+            </td></tr><tr><td>
+               <p>NCHAR[ACTER] (length)</p>
+            </td><td>
+               <p>For multi-language support, like CHAR</p>
+            </td></tr><tr><td>
+               <p>NUMERIC[(length[,decimals])], MONEY, SMALLMONEY, YEAR </p>
+            </td><td>
+               <p></p>
+            </td></tr><tr><td>
+               <p>NVARCHAR[ACTER] (length)</p>
+            </td><td>
+               <p>For multi-language support, like VARCHAR</p>
+            </td></tr><tr><td>
+               <p>REAL[(length, decimals)] </p>
+            </td><td>
+               <p></p>
+            </td></tr><tr><td>
+               <p>SERIAL, BIGSERIAL</p>
+            </td><td>
+               <p>4 and 8 byte serial</p>
+            </td></tr><tr><td>
+               <p>SMALLINT, INT2, TINYINT</p>
+            </td><td>
+               <p></p>
+            </td></tr><tr><td>
+               <p>TEXT, CLOB, LONG, LONG VARCHAR, LONGTEXT, LVARCHAR, MEDIUMTEXT</p>
+            </td><td>
+               <p>Acts as a CLOB</p>
+            </td></tr><tr><td>
+               <p>TIME</p>
+            </td><td>
+               <p>Accepts hh:mm:ss or hhmmss format</p>
+            </td></tr><tr><td>
+               <p>TIMESTAMP[(length)], SMALLDATETIME</p>
+            </td><td>
+               <p>Combination of date and time, with optional fractional second precision</p>
+            </td></tr><tr><td>
+               <p>VARCHAR[2] (length) </p>
+               <p>or  CHAR[ACTER] VARYING (length), TINYTEXT </p>
+            </td><td>
+               <p>Varying number of characters, with a maximum of specified length</p>
+            </td></tr><tr><td>
+               <p>GEOMETRY</p>
+            </td><td>
+               <p>A fundamental postgis spatial data type used to represent a feature in the Euclidean coordinate system</p>
+            </td></tr></tbody></table></div></div><div class="chapter" title="Chapter 3. Identifiers &amp; Literals"><div class="titlepage"><div><div><h2 class="title"><a name="id_lit"></a>Chapter 3. Identifiers &amp; Literals</h2></div></div></div><p>
+    Identifiers behave similar to PostgreSQL.  They may be double-quoted, in 
+    which case they are case sensitive. If they are not quoted, they are 
+    treated as if they were typed in lower case. Please keep this in mind as
+    you work with databases, tables and columns.
+  </p><p>
+    Literal string values should be enclosed by single quotes.
+  </p></div><div class="chapter" title="Chapter 4. Expressions"><div class="titlepage"><div><div><h2 class="title"><a name="expressions"></a>Chapter 4. Expressions</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="#expressions">Expressions</a></span></dt></dl></div><div class="sect1" title="Expressions"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="expressions"></a>Expressions</h2></div></div></div><p>
+     Logical expressions are typically found as part of the 
+     <code class="literal">WHERE</code> clause of various statements in determining the 
+     rows that will be effected by the statement. The operands of a logical 
+     expression to be evaluated by a logical operator may in turn be a logical
+     expression, or an SQL expression of any of the supported data types.
+   </p><p>
+     Operators are discussed in the following section. In addition, available 
+     functions are covered in a later chapter.
+   </p></div></div><div class="chapter" title="Chapter 5. Operators"><div class="titlepage"><div><div><h2 class="title"><a name="operators"></a>Chapter 5. Operators</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="#log_operators">Logical Operators</a></span></dt><dt><span class="sect1"><a href="#math_operators">Mathematical Operators</a></span></dt><dt><span class="sect1"><a href="#bit_operators">Bit Operators</a></span></dt><dt><span class="sect1"><a href="#date_operators">Date/Time Operators</a></span></dt></dl></div><p>
+    The logical and mathematical operators that are used in expressions that 
+    Stado recognizes appear below, in ascending order of precedence by line. 
+  </p><p>
+
+  </p><p>
+    Parentheses can also be used in expression to determine precedence.
+  </p><div class="sect1" title="Logical Operators"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="log_operators"></a>Logical Operators</h2></div></div></div><pre class="programlisting">
+    
+      OR
+      AND
+      NOT
+      BETWEEN
+      CASE, WHEN, THEN, ELSE
+      =,  !=, &lt;&gt;, &gt;=, &gt;, &lt;=, &lt;, 
+      IS, LIKE, ILIKE, SIMILAR TO, IN, ~
+      BETWEEN 
+
+      ~ matches
+      ~* matches, case insensitive
+      !~ not matches
+      !~* not matches, case insensitive
+    
+   </pre><p>
+     The between operator allows for the comparison of a range of values.
+   </p><p>
+     Example:
+   </p><pre class="programlisting">
+    
+      SELECT *
+       FROM customer
+      WHERE est_income BETWEEN 100000 and 200000
+    
+   </pre><p>
+     <span class="bold"><strong>CASE</strong></span>
+   </p><pre class="programlisting">
+    
+      CASE expression 
+        WHEN compare_expression THEN result_value 
+       [WHEN compare_expression THEN result_value ...] 
+       [ELSE result_value] 
+      END 
+
+      CASE 
+        WHEN condition THEN result_value 
+       [WHEN condition THEN result_value ...] 
+       [ELSE result_value] 
+      END 
+    
+   </pre><p>
+     There are two forms of <code class="literal">CASE</code>. The first form allows for
+     comparing a single expression against a list of possible values, while the
+     second form allows for various conditions to be evaluated.
+   </p><p>
+     In either case, an <code class="literal">ELSE</code> clause may appear to specify a 
+     default value.
+   </p><p>
+     Example:
+   </p><pre class="programlisting">
+    
+      SELECT CASE custtype 
+	       WHEN &#8216;P&#8217; THEN &#8216;Platinum&#8217; 
+               WHEN &#8216;G&#8217; THEN &#8216;Gold&#8217;
+               WHEN &#8216;S&#8217; THEN &#8216;Silver&#8217;
+               ELSE &#8216;Standard&#8217;
+             END
+        FROM customer
+       WHERE state = &#8216;CA&#8217;;
+
+      SELECT CASE 
+               WHEN custtype = &#8216;P&#8217; THEN &#8216;Red Carpet&#8217;
+               WHEN ordercount &lt;= 1 THEN &#8216;New&#8217;
+               ELSE &#8216;Standard&#8217;
+             END;
+    
+   </pre><p>
+     <span class="bold"><strong>IS</strong></span>
+   </p><p>
+     Example:
+   </p><pre class="programlisting">
+    
+      SELECT * 
+        FROM customer
+       WHERE lastname IS NULL
+    
+   </pre><p>
+     <span class="bold"><strong>LIKE</strong></span>
+   </p><p>
+     <code class="literal">LIKE</code> is used to match part of a string. Wildcard 
+     characters are used as part of a string pattern.
+   </p><p>
+     Example: Select all customers whose names begin with the letter B.
+   </p><pre class="programlisting">
+    
+      SELECT *
+       FROM customer
+      WHERE lastname LIKE &#8216;B%&#8217;
+    
+   </pre><p>
+     <span class="bold"><strong>IN</strong></span>
+   </p><p>
+     <code class="literal">IN</code> is used to compare an expression to a set of 
+     expressions
+   </p><p>
+     Example: Select all customers in New England states
+   </p><pre class="programlisting">
+    
+      SELECT *
+        FROM customer
+       WHERE state IN (&#8216;NH&#8217;, &#8216;VT&#8217;, &#8216;CT&#8217;, &#8216;MA&#8217;, &#8216;ME&#8217;)
+    
+   </pre></div><div class="sect1" title="Mathematical Operators"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="math_operators"></a>Mathematical Operators</h2></div></div></div><pre class="programlisting">
+    
+      |/  square root
+      ||/ cube root
+      ! factorial
+      !! factorial (prefix operator)
+      @ absolute value
+      -, +
+      *, /, DIV, MOD
+      ^
+      - (numeric negation)
+    
+   </pre><p>
+     Standard mathematical operators &#8216;-&#8216;, &#8216;+&#8217;, &#8216;*&#8217;, and &#8216;/&#8217; are available. In 
+     addition the following are available: &#8216;^&#8217;  (raise to a power), DIV 
+     (divisor&#8212;no remainder), and MOD (Modulo- remainder).
+   </p></div><div class="sect1" title="Bit Operators"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="bit_operators"></a>Bit Operators</h2></div></div></div><pre class="programlisting">
+    
+      &amp; bitwise AND
+      | bitwise OR
+      # bitwise XOR
+      &lt;&lt; bitwise shift left
+      &gt;&gt; bitwise shift right
+    
+   </pre></div><div class="sect1" title="Date/Time Operators"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="date_operators"></a>Date/Time Operators</h2></div></div></div><p>
+     The following describes the operators and their usage that are applicable
+     to Date/Time expressions.
+   </p><p><span class="bold"><strong>Operator   Example                                            Result</strong></span></p><p>+                date '2001-09-28' + integer '7'           date '2001-10-05'</p><p>+                date '2001-09-28' + time '03:00'          timestamp '2001-09-28 03:00'</p><p>-                date '2001-10-01' - date '2001-09-28'     integer '3'</p><p>-                date '2001-10-01' - integer '7'           date '2001-09-24'</p></div></div><div class="chapter" title="Chapter 6. Functions"><div class="titlepage"><div><div><h2 class="title"><a name="functions"></a>Chapter 6. Functions</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="#aggfunc">Aggregate Functions</a></span></dt><dt><span class="sect1"><a href="#statfunc">Statistical Aggregate Functions</a></span></dt><dt><span class="sect1"><a href="#mathfunc">Mathematical Functions</a></span></dt><dt><span class="sect1"><a href="#datefunc">Date &amp; Time Functions</a></span></dt><dt><span class="sect1"><a href="#stringfunc">String and Character Functions</a></span></dt><dt><span class="sect1"><a href="#otherfunc">Other Functions</a></span></dt><dt><span class="sect1"><a href="#spatialfunc">Spatial Functions</a></span></dt></dl></div><p>
+    The following functions are supported as part of SQL Expressions. You may 
+    also map functions from one to another or create templates that are 
+    substituted at runtime, which is useful for user-defined functions. Please 
+    see the Administrator&#8217;s Guide for more details on how to set that up in the
+    <code class="literal">stado.config</code> file.
+  </p><div class="sect1" title="Aggregate Functions"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="aggfunc"></a>Aggregate Functions</h2></div></div></div><p>
+     Aggregate functions differ from regular functions in that regular 
+     functions are applied on a row by row basis, where as aggregate functions 
+     apply to a group of rows, either the entire set of rows being returned 
+     based on the specified conditions, or a subset of that, as determined by 
+     the <code class="literal">GROUP BY</code> clause.
+   </p><p>
+     <span class="bold"><strong>AVG(n)</strong></span>
+   </p><p>
+     Calculates the average or mean of a numeric expression.
+   </p><p>
+     <span class="bold"><strong>BIT_AND(expression)</strong></span>
+   </p><p>
+     Returns the bitwise AND of all non-null input values, or null if none.
+   </p><p>
+     <span class="bold"><strong>BIT_OR(expression)</strong></span>
+   </p><p>
+     Returns the bitwise OR of all non-null input values, or null if none.
+   </p><p>
+     <span class="bold"><strong>BOOL_AND(expression)</strong></span>
+   </p><p>
+     Returns true if all input values are true, otherwise false.
+   </p><p>
+     <span class="bold"><strong>BOOL_OR(expression)</strong></span>
+   </p><p>
+     Returns true if at least one input value is true, otherwise false.
+   </p><p>
+     <span class="bold"><strong>COUNT(*)</strong></span>
+   </p><p>
+   </p><p>
+     <span class="bold"><strong>COUNT([DISTINCT] expr)</strong></span>
+   </p><p>
+     COUNT(*)  counts the number of rows that make up a group of rows.
+     COUNT(DISTNCT expr) counts the number of unique appearances of the 
+     expression in the projected results.
+   </p><p>
+     <span class="bold"><strong>EVERY(expression)</strong></span>
+   </p><p>
+     Returns equivalent to BOOL_AND.
+   </p><p>
+     <span class="bold"><strong>MAX(expr)</strong></span>
+   </p><p>
+     Calculates the maximum value for a group of rows, whether the expression 
+     is of a numeric or string type.
+   </p><p>
+     <span class="bold"><strong>MIN(expr)</strong></span>
+   </p><p>
+     Calculates the minimum value for a group of rows, whether the expression 
+     is of a numeric or string type.
+   </p><p>
+     <span class="bold"><strong>SUM(n)</strong></span>
+   </p><p>
+     Calculates the SUM of an expression for a group of rows.
+   </p></div><div class="sect1" title="Statistical Aggregate Functions"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="statfunc"></a>Statistical Aggregate Functions</h2></div></div></div><p>
+     <span class="bold"><strong>CORR(Y, X)</strong></span>
+   </p><p>
+     Calculates the correlation-coefficient of the two numbers.
+   </p><p>
+     <span class="bold"><strong>COVAR_POP(Y, X)</strong></span>
+   </p><p>
+     Calculates the population covariance of the two numbers.
+   </p><p>
+     <span class="bold"><strong>COVAR_SAMP(Y, X)</strong></span>
+   </p><p>
+     Calculates the sample covariance of the two numbers.
+   </p><p>
+     <span class="bold"><strong>REGR_AVGX(Y, X)</strong></span>
+   </p><p>
+     Calculates the average of the independent variable(X) of the regression line.
+   </p><p>
+     <span class="bold"><strong>REGR_AVGY(Y, X)</strong></span>
+   </p><p>
+     Calculates the average of the dependent variable(Y) of the regression line.
+   </p><p>
+     <span class="bold"><strong>REGR_COUNT(Y, X)</strong></span>
+   </p><p>
+     Calculates the number of non-null number pairs to fit the regression line.
+   </p><p>
+     <span class="bold"><strong>REGR_INTERCEPT(Y, X)</strong></span>
+   </p><p>
+     Calculates the y-intercept of the least-squares-fit linear equation determined by the (X, Y) pairs.
+   </p><p>
+     <span class="bold"><strong>REGR_R2(Y, X)</strong></span>
+   </p><p>
+     Calculates the square of the correlation coefficient.
+   </p><p>
+     <span class="bold"><strong>REGR_SLOPE(Y, X)</strong></span>
+   </p><p>
+     Calculates the slope of the least-squares-fit linear equation determined by the (X, Y) pairs.
+   </p><p>
+     <span class="bold"><strong>REGR_SXX(Y, X)</strong></span>
+   </p><p>
+     Calculates the sum of squares of the independent variable.
+   </p><p>
+     <span class="bold"><strong>REGR_SXY(Y, X)</strong></span>
+   </p><p>
+     Calculates the sum of products of independent times dependent variable.
+   </p><p>
+     <span class="bold"><strong>REGR_SYY(Y, X)</strong></span>
+   </p><p>
+     Calculates the sum of squares of the dependent variable.
+   </p><p>
+     <span class="bold"><strong>STDDEV(n)</strong></span>
+   </p><p>
+     Calculates the standard deviation of a group of rows.
+   </p><p>
+     <span class="bold"><strong>STDDEV_POP(expression)</strong></span>
+   </p><p>
+     Calculates the population standard deviation of the input values.
+   </p><p>
+     <span class="bold"><strong>STDDEV_SAMP(expression)</strong></span>
+   </p><p>
+     Calculates the sample standard deviation of the input values.
+   </p><p>
+     <span class="bold"><strong>VARIANCE(n)</strong></span>
+   </p><p>
+     Calculates the statistical variance of a group of rows.
+   </p><p>
+     <span class="bold"><strong>VAR_POP(expression)</strong></span>
+   </p><p>
+     Calculates the population variance of the input values.
+   </p><p>
+     <span class="bold"><strong>VAR_SAMP(expression)</strong></span>
+   </p><p>
+     Calculates the sample variance of the input values.
+   </p></div><div class="sect1" title="Mathematical Functions"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="mathfunc"></a>Mathematical Functions</h2></div></div></div><p>
+     <span class="bold"><strong>ABS(n)</strong></span>
+   </p><p>
+     Calculates the absolute value of the numeric expression.
+   </p><p>
+     <span class="bold"><strong>CBRT(DOUBLE PRECISION)</strong></span>
+   </p><p>
+     Returns cube root of the given number.
+   </p><p>
+     <span class="bold"><strong>CEIL[ING](n)</strong></span>
+   </p><p>
+     Calculates the ceiling of the numeric expression, that is, the next 
+     highest integer. CEIL(1.2) is equal to 2, and CEIL(-1.2) is equal to &#8211;1.
+   </p><p>
+     <span class="bold"><strong>EXP(DOUBLE PRECISION or NUMERIC)</strong></span>
+   </p><p>
+     Returns exponential of the given number.
+   </p><p>
+     <span class="bold"><strong>FLOOR(DOUBLE PRECISION or NUMERIC)</strong></span>
+   </p><p>
+     Returns largest integer not greater than argument.
+   </p><p>
+     <span class="bold"><strong>LN(n)</strong></span>
+   </p><p>
+     Calculates the natural logarithm of numeric expression n.
+   </p><p>
+     <span class="bold"><strong>LOG(n1)</strong></span>
+   </p><p>
+     <span class="bold"><strong>LOG(n1, n2)</strong></span>
+   </p><p>
+     In the first form with one parameter, it is equivalent of LN(), the 
+     natural logarithm function. In the second form, it calculates the 
+     logarithm of n1 for base n2.
+   </p><p>
+     <span class="bold"><strong>MOD(n1, n2)</strong></span>
+   </p><p>
+     Modulo. Calculates the remainder of n1 divided by n2. 
+     This is equivalent to n1 mod n2 or n1 % n2.
+   </p><p>
+     <span class="bold"><strong>PI()</strong></span>
+   </p><p>
+     Returns the value of Pi.
+   </p><p>
+     <span class="bold"><strong>POWER(n1, n2)</strong></span>
+   </p><p>
+     Calculates n1 to the power of n2.
+   </p><p>
+     <span class="bold"><strong>RANDOM()</strong></span>
+   </p><p>
+     Returns random value between 0.0 and 1.0.
+   </p><p>
+     <span class="bold"><strong>ROUND(n)</strong></span>
+   </p><p>
+     Calculates n rounded to the nearest integer.
+   </p><p>
+     <span class="bold"><strong>SETSEED(DOUBLE PRECISION)</strong></span>
+   </p><p>
+     Sets seed for subsequent random() calls (value between 0 and 1.0).
+   </p><p>
+     <span class="bold"><strong>SIGN(n)</strong></span>
+   </p><p>
+     Calculates the sign of numeric expression n. The return value is &#8211;1 if 
+     n is negative, 0, if n is 0, or 1 is n is positive.
+   </p><p>
+     <span class="bold"><strong>SQRT(n)</strong></span>
+   </p><p>
+     Calculates the square root of n.
+   </p><p>
+     <span class="bold"><strong>TRUNC(n1)</strong></span>
+   </p><p>
+     <span class="bold"><strong>TRUNC(n1,n2)</strong></span>
+   </p><p>
+     In the first form, with a single parameter, the decimal places are 
+     truncated. In the second form, with n1 &gt; 0, the number n1 is truncated to
+     n2 decimal places. If n2 &lt; 0 then n2 places in front of the decimal 
+     point are set to 0.
+   </p><p>
+     <span class="bold"><strong>WIDTH_BUCKET(op NUMERIC, b1 NUMERIC, b2 NUMERIC, count INTEGER)</strong></span>
+   </p><p>
+     Returns the bucket to which operand would be assigned in an equidepth 
+     histogram with count buckets, in the range b1 to b2.
+   </p><p>
+     <span class="bold"><strong>Trigonometric Functions</strong></span>
+   </p><p>
+     <span class="bold"><strong>ACOS(n)</strong></span>
+   </p><p>
+     Returns the arc cosine of n.
+   </p><p>
+     <span class="bold"><strong>ASIN(n)</strong></span>
+   </p><p>
+     Returns the arc sin of n.
+   </p><p>
+     <span class="bold"><strong>ATAN(n)</strong></span>
+   </p><p>
+     Returns the arc tangent of n.
+   </p><p>
+     <span class="bold"><strong>COS(n)</strong></span>
+   </p><p>
+     Returns the cosine of n.
+   </p><p>
+     <span class="bold"><strong>COT(n)</strong></span>
+   </p><p>
+     Returns the cotangent of n.
+   </p><p>
+     <span class="bold"><strong>DEGREES(n)</strong></span>
+   </p><p>
+     Returns the radians value of n converted to degrees.
+   </p><p>
+     <span class="bold"><strong>RADIANS(n)</strong></span>
+   </p><p>
+     Returns the degrees value of n converted to radians.
+   </p><p>
+     <span class="bold"><strong>SIN(n)</strong></span>
+   </p><p>
+     Returns the sine of n.
+   </p><p>
+     <span class="bold"><strong>TAN(n)</strong></span>
+   </p><p>
+     Returns the tangent of n
+   </p></div><div class="sect1" title="Date &amp; Time Functions"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="datefunc"></a>Date &amp; Time Functions</h2></div></div></div><p><span class="bold"><strong>AGE (timestamp [, timestamp)</strong></span></p><p>Returns the age or age difference of the timestamp.</p><p><span class="bold"><strong>CLOCK_TIMESTAMP()</strong></span></p><p>Returns current date and time.</p><p><span class="bold"><strong>CURRENT_DATE</strong></span></p><p>Returns the current date.</p><p><span class="bold"><strong>CURRENT_TIME</strong></span></p><p>Returns the current time.</p><p><span class="bold"><strong>CURRENT_TIMESTAMP</strong></span></p><p>Returns the current date and time as a timestamp (datetime) type.</p><p><span class="bold"><strong>DATE_PART(s, timestamp)</strong></span></p><p>Returns the part element specified in the first argument from the timestamp.</p><p>Example:</p><p>        select DATE_PART(&#8216;month&#8217;, &#8216;2001-12-31&#8217;) from table1</p><p>        Returns</p><p>        12</p><p><span class="bold"><strong>DATE_TRUNC(s, timestamp)</strong></span></p><p>Returns the timestamp truncated to the specified precision.</p><p><span class="bold"><strong>EXTRACT (field from [timestamp|interval])</strong></span></p><p>Extracts the specified field from the timestamp</p><p>        select EXTRACT (day from timestamp &#8217;1999-12-31&#8217;)</p><p></p><p>        Returns</p><p></p><p>        31</p><p><span class="bold"><strong>ISFINITE (timestamp/interval)</strong></span></p><p>Tests for finite timestamp</p><p><span class="bold"><strong>JUSTIFY_DAYS(interval)</strong></span></p><p>Adjusts interval so 30-day time periods are represented as months.</p><p><span class="bold"><strong>JUSTIFY_HOURS(interval)</strong></span></p><p>Adjusts interval so 24-hour time periods are represented as days.</p><p><span class="bold"><strong>JUSTIFY_INTERVAL(interval)</strong></span></p><p>Adjusts interval using justify_days and justify_hours, with additional sign adjustments.</p><p><span class="bold"><strong>LAST_DAY(timestamp) </strong></span></p><p>Returns the last day of the month represented by the given date.</p><p><span class="bold"><strong>LOCALTIME [(int)]</strong></span></p><p>Returns time of day</p><p><span class="bold"><strong>LOCALTIMESTAMP [(int)]</strong></span></p><p>Returns current timestamp</p><p><span class="bold"><strong>MONTHS_BETWEEN(TIMESTAMP1,TIMESTAMP2)</strong></span></p><p>Returns the number of months between two dates.</p><p><span class="bold"><strong>NEXT_DAY(TIMESTAMP,TEXT)</strong></span></p><p>Returns the first occurrence of the given weekday strictly greater than the given date.</p><p><span class="bold"><strong>NOW()</strong></span></p><p>Returns current timestamp with time zone.</p><p><span class="bold"><strong>STATEMENT_TIMESTAMP()</strong></span></p><p>Returns current date and time (at the start of current statement).</p><p><span class="bold"><strong>TIMEOFDAY()</strong></span></p><p>Returns the current date and time as a timestamp.</p></div><div class="sect1" title="String and Character Functions"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="stringfunc"></a>String and Character Functions</h2></div></div></div><p><span class="bold"><strong>ASCII(s)</strong></span></p><p>Returns the ASCII value of string s.</p><p><span class="bold"><strong>BIT_LENGTH(s)</strong></span></p><p>Returns the number of bits in the string.</p><p><span class="bold"><strong>BTRIM(string TEXT [,characters TEXT])</strong></span></p><p>Removes the longest string consisting only of characters in characters (a space by default) from the start and end of string.</p><p><span class="bold"><strong>CHAR_LENGTH(s)</strong></span></p><p><span class="bold"><strong>CHARACTER_LENGTH(s)</strong></span></p><p>Returns the number of characters in the string.</p><p><span class="bold"><strong>CHR(INTEGER)</strong></span></p><p>Returns the character with the given ASCII code.</p><p><span class="bold"><strong>CONCAT(str1, str2)</strong></span></p><p>Perfoms string concatenation.</p><p><span class="bold"><strong>CONVERT(str using conversion_name)</strong></span></p><p>Change encoding using specified conversion name.</p><p><span class="bold"><strong>DECODE(expr, expr1a,expr1b [,expr2a,expr2b]...[,default])</strong></span></p><p>Finds first match of expr with expr1a, expr2a, etc. When match found, returns corresponding parameter pair, expr1b, expr2b, etc. If no match found, returns default. If no match found and default not specified, returns null.</p><p><span class="bold"><strong>DECODE(string TEXT,type TEXT)</strong></span></p><p>Decode binary data from string previously encoded with encode. Parameter type is same as in encode.</p><p><span class="bold"><strong>ENCODE(data BYTEA,type TEXT)</strong></span></p><p>Encode binary data to ASCII-only representation. Supported types are: base64, hex, escape.</p><p><span class="bold"><strong>INITCAP(s)</strong></span></p><p>Returns the string passed in transformed such that the first letter in upper case, and the other letters are in lower case.</p><p><span class="bold"><strong>INSTR(string, set, [start, [occurrence]])</strong></span></p><p>Finds the location of a set of characters in a string, starting at position start in the string string, and looking for the first, second, third and so on occurrences of the set.</p><p><span class="bold"><strong>LENGTH(s)</strong></span></p><p>Returns the number of characters in string s.</p><p><span class="bold"><strong>LOWER(s)</strong></span></p><p>Returns string s with all characters converted to lower case.</p><p><span class="bold"><strong>LPAD(s1, n[, s2])</strong></span></p><p>Returns string based on string s1 set to length n, with any extra padding needed taken from s2. The s2 is optional and by default a space is used.</p><p><span class="bold"><strong>LTRIM(s1 [, s2])</strong></span></p><p>Remove the longest string containing only characters from s2 (a space by default) from the start of string s1.</p><p><span class="bold"><strong>MD5(string)</strong></span></p><p>Calculates the MD5 hash of string, returning the result in hexadecimal.</p><p><span class="bold"><strong>OCTET_LENGTH(s)</strong></span></p><p>Returns the number of bytes in the string</p><p><span class="bold"><strong>OVERLAY(s1 PLACING s2 FROM int [FOR int])</strong></span></p><p>Replaces characters in string s1 with those from s2 starting at the position specified.</p><p><span class="bold"><strong>PG_CLIENT_ENCODING()</strong></span></p><p>Current client encoding name.</p><p><span class="bold"><strong>POSITION(s1 IN s2)</strong></span></p><p>Returns the character position in which string s1 is found in string s2.</p><p><span class="bold"><strong>QUOTE_IDENT(s)</strong></span></p><p>Returns the given string in double quoted form. Quotes are added only if necessary (i.e., if the string contains non-identifier characters or would be case-folded).</p><p><span class="bold"><strong>QUOTE_LITERAL(s)</strong></span></p><p>Returns the given string suitably quoted to be used as a string literal in an SQL statement string. Embedded quotes and backslashes are properly doubled.</p><p><span class="bold"><strong>REPEAT(string TEXT,number INTEGER)</strong></span></p><p>Repeats string the specified number of times.</p><p><span class="bold"><strong>REPLACE(string TEXT,search_string TEXT,[replace_string]TEXT)</strong></span></p><p>Replaces one value in a string with another. If replace_string is not specified, the search_string value when found, is removed.</p><p><span class="bold"><strong>RPAD(s1,n,s2)</strong></span></p><p>Returns string based on string s set to length n, with any extra padding needed taken from s2.</p><p><span class="bold"><strong>RTRIM(s1)</strong></span></p><p>Returns string s1 with trailing spaces removed.</p><p><span class="bold"><strong>SPLIT_PART(string TEXT, delimiter TEXT, field INTEGER)</strong></span></p><p>Splits string on delimiter and return the given field (counting from one).</p><p><span class="bold"><strong>STRPOS(string,substring)</strong></span></p><p>Location of specified substring in the string.</p><p><span class="bold"><strong>SUBSTR(s1, n1, n2)</strong></span></p><p><span class="bold"><strong>SUBSTRING(s1 FROM n1 [ FOR n2])</strong></span></p><p>Returns the substring of string s1, starting at position n1, continuing for n2 characters.</p><p><span class="bold"><strong>TO_ASCII(string text[, encoding text])</strong></span></p><p>Converts string to ASCII from another encoding (only supports conversion from LATIN1, LATIN2, LATIN9, and WIN1250 encodings).</p><p><span class="bold"><strong>TO_HEX(number)</strong></span></p><p>Converts number to its equivalent hexadecimal representation.</p><p><span class="bold"><strong>TRANSLATE(string TEXT, from TEXT, to TEXT)</strong></span></p><p>Any character in string that matches a character in the from set is replaced by the corresponding character in the to set.</p><p><span class="bold"><strong>TRIM(leading | trailing | both c from s1)</strong></span></p><p>Remove the longest string containing only the characters c (a space by default) from the start, end, or both ends of the string s1.</p><p><span class="bold"><strong>UPPER(s)</strong></span></p><p>Returns the string s converted into all upper case letters.</p></div><div class="sect1" title="Other Functions"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="otherfunc"></a>Other Functions</h2></div></div></div><p><span class="bold"><strong>CURRENT_USER()</strong></span></p><p>Returns the current user.</p><p><span class="bold"><strong>CAST(expr1 as datatype)</strong></span></p><p>Casts expression to datatype.</p><p><span class="bold"><strong>DATABASE()</strong></span></p><p>Returns the current database being used.</p><p><span class="bold"><strong>VERSION()</strong></span></p><p>Returns the version of the database server being used.  </p><p><span class="bold"><strong>USER()</strong></span></p><p>Returns the current user.</p></div><div class="sect1" title="Spatial Functions"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="spatialfunc"></a>Spatial Functions</h2></div></div></div><p>
+      The description of the supported spatial functions can be found at 
+      http://postgis.refractions.net/documentation/manual-1.5/reference.html
+   </p></div></div><div class="chapter" title="Chapter 7. SQL Commands"><div class="titlepage"><div><div><h2 class="title"><a name="sql_cmds"></a>Chapter 7. SQL Commands</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="#ddl">Data Definition Statements</a></span></dt><dd><dl><dt><span class="sect2"><a href="#create_tablespace">CREATE TABLESPACE</a></span></dt><dt><span class="sect2"><a href="#create_table">CREATE TABLE</a></span></dt><dt><span class="sect2"><a href="#drop_table">DROP TABLE</a></span></dt><dt><span class="sect2"><a href="#truc_table">TRUNCATE TABLE</a></span></dt><dt><span class="sect2"><a href="#add_column">ALTER TABLE &#8230; ADD COLUMN</a></span></dt><dt><span class="sect2"><a href="#drop_column">ALTER TABLE &#8230; DROP COLUMN</a></span></dt><dt><span class="sect2"><a href="#add_pk">ALTER TABLE &#8230; ADD PRIMARY KEY</a></span></dt><dt><span class="sect2"><a href="#add_fk">ALTER TABLE &#8230; ADD FOREIGN KEY</a></span></dt><dt><span class="sect2"><a href="#drop_const">ALTER TABLE &#8230; DROP CONSTRAINT</a></span></dt><dt><span class="sect2"><a href="#drop_pk">ALTER TABLE &#8230; DROP PRIMARY KEY</a></span></dt><dt><span class="sect2"><a href="#alter_column">ALTER TABLE &#8230; ALTER COLUMN</a></span></dt><dt><span class="sect2"><a href="#owner">ALTER TABLE &#8230; OWNER</a></span></dt><dt><span class="sect2"><a href="#set_tablespace">ALTER TABLE &#8230; SET TABLESPACE</a></span></dt><dt><span class="sect2"><a href="#rename_table">RENAME TABLE</a></span></dt><dt><span class="sect2"><a href="#create_index">CREATE INDEX</a></span></dt><dt><span class="sect2"><a href="#drop_index">DROP INDEX</a></span></dt><dt><span class="sect2"><a href="#cluster">CLUSTER</a></span></dt><dt><span class="sect2"><a href="#create_view">CREATE VIEW</a></span></dt><dt><span class="sect2"><a href="#drop_view"> DROP VIEW</a></span></dt></dl></dd><dt><span class="sect1"><a href="#dml">Data Manipulation Statements</a></span></dt><dd><dl><dt><span class="sect2"><a href="#insert">INSERT</a></span></dt><dt><span class="sect2"><a href="#update">UPDATE</a></span></dt><dt><span class="sect2"><a href="#delete">DELETE</a></span></dt><dt><span class="sect2"><a href="#select">SELECT</a></span></dt><dt><span class="sect2"><a href="#explain">EXPLAIN</a></span></dt></dl></dd><dt><span class="sect1"><a href="#copy">Importing and Exporting via COPY</a></span></dt><dt><span class="sect1"><a href="#users">Users and Privileges</a></span></dt><dd><dl><dt><span class="sect2"><a href="#create_user">CREATE USER</a></span></dt><dt><span class="sect2"><a href="#alter_user">ALTER USER</a></span></dt><dt><span class="sect2"><a href="#drop_user">DROP USER</a></span></dt><dt><span class="sect2"><a href="#grant">GRANT</a></span></dt><dt><span class="sect2"><a href="#revoke">REVOKE</a></span></dt></dl></dd><dt><span class="sect1"><a href="#other">Other Commands</a></span></dt><dd><dl><dt><span class="sect2"><a href="#show_db">SHOW DATABASES</a></span></dt><dt><span class="sect2"><a href="#show_tables">SHOW TABLES</a></span></dt><dt><span class="sect2"><a href="#show_views">SHOW VIEWS</a></span></dt><dt><span class="sect2"><a href="#show_table">SHOW TABLE table</a></span></dt><dt><span class="sect2"><a href="#show_view">SHOW VIEW view</a></span></dt><dt><span class="sect2"><a href="#show_indexes">SHOW INDEXES ON table</a></span></dt><dt><span class="sect2"><a href="#show_constraints">SHOW CONSTRAINTS ON table</a></span></dt><dt><span class="sect2"><a href="#show_users">SHOW USERS</a></span></dt><dt><span class="sect2"><a href="#show_statements">SHOW STATEMENTS</a></span></dt><dt><span class="sect2"><a href="#kill">KILL</a></span></dt><dt><span class="sect2"><a href="#analyze">ANALYZE</a></span></dt><dt><span class="sect2"><a href="#vacuum">VACUUM</a></span></dt><dt><span class="sect2"><a href="#exec_direct">EXECUTE DIRECT</a></span></dt></dl></dd></dl></div><div class="sect1" title="Data Definition Statements"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ddl"></a>Data Definition Statements</h2></div></div></div><div class="sect2" title="CREATE TABLESPACE"><div class="titlepage"><div><div><h3 class="title"><a name="create_tablespace"></a>CREATE TABLESPACE</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       CREATE TABLESPACE tablespace
+           LOCATION 'path' ON NODE[S] nodenum [,nodenum...]
+         [,LOCATION 'path' ON NODE[S] nodenum [,nodenum...]]
+     </pre><p>
+       PostgreSQL supports the creation of tablespaces. This gives database 
+       administrators more flexibility in specifying locations of tables on 
+       physical disks. For example, a DBA may want to put a particularly 
+       large and often-used fact table on its own set of RAID hard drives, 
+       while keeping other tables in another location. Or, the DBA may want to
+       put indexes on a table in a different location than the table itself. 
+     </p><p>
+       Tablespaces are not required. If not used, all tables will be created in
+       the default tablespace on the underlying database on each node. 
+     </p><p>
+       Stado allows you to conveniently assign a logical tablespace name that 
+       groups together and corresponds to tablespaces on the individual 
+       PostgreSQL instances on the individual nodes. Ideally, nodes should be 
+       equal in processing capability and configuration, so you could specify 
+       the same file system path location for all nodes. There is also the 
+       capability to specify different locations on different nodes, if 
+       desired.
+     </p><p>
+       Once a tablespace has been defined, it can be referenced when creating 
+       tables or indexes. 
+     </p><p>
+       A table can be moved to a separate tablespace by using the 
+       <code class="literal">ALTER TABLE SET TABLESPACE</code> command. 
+     </p><p>
+       Note: the paths specified for the tablespaces must be empty directories 
+       that have already been created, and the PostgreSQL postmaster process 
+       must have permission to write to this directory.
+     </p></div><div class="sect2" title="CREATE TABLE"><div class="titlepage"><div><div><h3 class="title"><a name="create_table"></a>CREATE TABLE</h3></div></div></div><p>
+       Syntax: 
+     </p><pre class="programlisting">
+       CREATE [TEMP] TABLE table_name (create_definition, ...) 
+              [partitioning_options] 
+              [INHERITS (table_name)]
+              [WITH XROWID | WITHOUT XROWID]
+              [TABLESPACE tablespace] 
+     </pre><p>
+       CREATE TABLE AS:
+     </p><pre class="programlisting">
+       CREATE [TEMP] TABLE table_name [(create_definition, ...)]
+              [partitioning_options] 
+              [INHERITS (table_name)]
+              [WITH XROWID | WITHOUT XROWID]
+              [TABLESPACE tablespace] 
+              AS select
+
+
+       create_definition:
+           column_name data_type [NOT NULL | NULL] [DEFAULT default_value] 
+              [PRIMARY KEY] 
+             or
+           constraint_definition
+
+       constraint_definition: [CONSTRAINT constraint_name]
+               PRIMARY KEY (index_column_name,...)
+         or    FOREIGN KEY [CONSTRAINT symbol]  (index_column_name,...)
+               [reference_definition]
+         or    CHECK (expression)
+
+       data_type: (one of the data types that appear in the Data Type section
+
+       :
+       reference_definition:
+            REFERENCES table_name [(index_column_name,...)]
+
+       partitioning_options:
+           [PARTITIONING KEY column_name] ON ALL
+         | [PARTITIONING KEY column_name] ON [NODE[S]] node_num[,node_num &#8230;]
+         | REPLICATED
+         | ROUND ROBIN ON (ALL | NODES node_num[,node_num &#8230;])
+     </pre><p>
+       The <code class="literal">CREATE TABLE</code> statement is used to create tables 
+       in databases.  It can be executed only by a user of type DBA or 
+       RESOURCE.
+     </p><p>
+       Table names may not start with the temporary table character sequence 
+       defined in <code class="literal">xdb.tempTablePrefix</code> in the 
+       <code class="literal">stado.config</code> file.
+     </p><p>
+       <span class="bold"><strong>Tablespaces</strong></span>
+     </p><p>
+       The optional <code class="literal">TABLESPACE</code> clause allows a tablespace 
+       to be specified, to determine the location of the table data. See the 
+       <code class="literal">CREATE TABLESPACE</code> command for more details.
+     </p><p>
+       <span class="bold"><strong>Internode Partitioning</strong></span>
+     </p><p>
+       The partitioning_options allow the DBA to specify a partitioning 
+       strategy, which is very important to the performance of the system. 
+       Additional information appears in the Stado Planning Guide, and should
+       be read carefully.
+     </p><p>
+       Partitioning allows the DBA to distribute the data amongst multiple 
+       nodes, either based on round robin partitioning, or a partitioning 
+       column. The value in this column is used to calculate a hash value, 
+       which is mapped to a destination node. (Stado does not support range 
+       partitioning or round-robin, just hash partitioning.) 
+     </p><p>
+       This distribution of data allows Stado to parallelize queries. In 
+       choosing a partitioning key, it is important to take into consideration 
+       what other tables this table will likely join with. That way, if these 
+       other tables are partitioned on the corresponding join column, the Stado
+       Optimizer will recognize that local joins can occur without having to 
+       resort to any row shipping.
+     </p><p>
+       It is recommended to use all available nodes when choosing which nodes 
+       to use for the partitioned table.
+     </p><p>
+       Normally, one would probably want to select a column to designate as the
+       partitioning column. Designating a partitioning column allows local 
+       joins to occur for other tables that are similarly partitioned, in cases
+       the tables have a parent-child relationship. ROUND ROBIN partitioning 
+       may be useful, too, however, in such cases where a table typically does
+       not join with any other tables (or just replicated ones), and there is 
+       no natural column to select as a partitioning column.
+     </p><p>
+       Another important partitioning_option is REPLICATED. This is appropriate
+       for &#8220;lookup&#8221; tables, such as a state code table. Replicated tables 
+       appear on all nodes, with each node containing the exact same data. This
+       also allows joins to occur on all nodes without having to ship any data. 
+       Depending on your database schema and queries, a DBA may even consider 
+       making other larger tables replicated, but caution is urged.
+     </p><p>
+       A table may also simply appear on a single node or subset of the 
+       available nodes, via the ON NODE clause, but it is recommended to use
+       all nodes.
+     </p><p>
+       **Note that if no partitioning table options are specified, the table is
+       partitioned on the on the first element of the primary key across all 
+       nodes. If none such key exists, the first column in the table is chosen
+       as the partitioning key automatically.
+     </p><p>
+       Examples:
+     </p><pre class="programlisting">
+       CREATE TABLE part (p_partkey     INTEGER NOT NULL,
+                          p_name        VARCHAR(55) NOT NULL,
+                          p_mfgr        CHAR(25) NOT NULL,
+                          p_brand       CHAR(10) NOT NULL,
+                          p_type        VARCHAR(25) NOT NULL,
+                          p_size        INTEGER NOT NULL,
+                          p_container   CHAR(10) NOT NULL,
+                          p_retailprice DECIMAL(15,2) NOT NULL,
+                          p_comment     VARCHAR(23) NOT NULL ) 
+       PARTITIONING KEY p_partkey ON ALL;
+
+       CREATE TABLE nation (n_nationkey  INTEGER NOT NULL,
+                            n_name       CHAR(25) NOT NULl,
+                            n_regionkey  INTEGER NOT NULL,
+                            n_comment    VARCHAR(152)) 
+       REPLICATED;
+     </pre><p>
+       <span class="bold"><strong>Constraint Exclusion Partitioning</strong></span>
+     </p><p>
+       PostgreSQL has the ability to partition within a database instance via
+       check constraints. This allows the DBA to create segments for a table 
+       that contain ranges of values, for example. A table named orders could 
+       be partitioned into monthly subtables, allowing queries that include a 
+       condition based on order date to scan with a smaller set of data, and 
+       therefore have a faster query time. 
+     </p><p>
+       This is a powerful feature that should be taken advantage of. Constraint
+       exclusion partitioning coupled with Stado&#8217;s partitioning across multiple
+       nodes will result in significantly faster query response times; a large 
+       table can be broken into multiple subtables, each of which is 
+       partitioned across multiple nodes in the cluster.
+     </p><p>
+       Note that the <code class="literal">postgresql.conf</code> parameter 
+       <code class="literal">constraint_exclusion</code> is off by default and must be 
+       set to on in order to take advantage of this feature.
+     </p><p>
+       An example appears below.
+     </p><pre class="programlisting">
+       CREATE TABLE orders (o_orderkey       INTEGER NOT NULL,
+                            o_custkey        INTEGER NOT NULL,
+                            o_orderstatus    CHAR(1) NOT NULL,
+                            o_totalprice     DECIMAL(15,2) NOT NULL,
+                            o_orderdate      DATE NOT NULL,
+                            o_orderpriority  CHAR(15) NOT NULL,
+                            o_clerk          CHAR(15) NOT NULL,
+                            o_shippriority   INTEGER NOT NULL,
+                            o_comment        VARCHAR(79) NOT NULL) 
+       PARTITIONING KEY o_orderkey ON ALL;
+
+       CREATE TABLE orders_199201 ( 
+         CHECK (o_orderdate BETWEEN '19920101'::DATE AND '19920131'::DATE) 
+       ) INHERITS (orders);
+
+       CREATE TABLE orders_199202 (
+         CHECK (o_orderdate BETWEEN '19920201'::DATE AND '19920228'::DATE) 
+       ) INHERITS (orders);
+     </pre><p>
+       A query like <code class="literal">SELECT o_orderdate, count(*) from orders where 
+       o_orderdate between &#8216;1992-01-01&#8217; and &#8216;1992-01-15&#8217; GROUP BY 
+       o_orderdate</code> will only use tuples found from the
+       <code class="literal">orders_199201</code> subtable (and the orders table, which 
+       should be left empty).
+     </p><p>
+       Note that when loading data, you must insert data into the proper 
+       subtable. Using the above example, in the current implementation, 
+       loading into orders directly will not automatically just insert the 
+       data into the correct subtable.
+     </p><p>
+       Another important consideration when creating subtables is to be aware 
+       that the current implementation is a bit datatype sensitive, and you 
+       might find that the underlying PostgreSQL executor is not taking full 
+       advantage of eliminating subtables. 
+     </p><p>
+       In the case of dates, we recommend using the above syntax to cast the 
+       date type, as in
+     </p><pre class="programlisting">
+       CHECK (o_orderdate BETWEEN &#8216;19920101&#8217;::DATE AND &#8216;19920131&#8217;::DATE)
+     </pre><p>
+       Leaving it as either just a date, or as a quoted string may cause 
+       queries in PostgreSQL to not be executed optimally. This depends on how 
+       the <code class="literal">CHECK</code> constraints are formulated and how the 
+       <code class="literal">WHERE</code> conditions are formulated. The above check 
+       constraint syntax appears to handle various date constructs (quoted, 
+       cast) in <code class="literal">SELECT WHERE</code> clauses properly.
+     </p><p>
+       <span class="bold"><strong>Temporary Tables</strong></span>
+     </p><p>
+       Temporary tables (or temp tables) may be created using the 
+       <code class="literal">CREATE TEMP TABLE</code> command. A temporary table is 
+       accessible only for the session that created it. After the session ends,
+       the temp table will be dropped automatically.
+     </p><p>
+       When a temporary table is created in Stado, one or more temp tables will
+       also be created on the underlying database. The stado.config 
+       configuration related properties appear below.
+     </p><div class="informaltable"><table border="1"><colgroup><col><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>stado.config parameter</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Default</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>xdb.tempTablePrefix</p>
+            </td><td>
+               <p>TMP</p>
+            </td><td>
+               <p>Temporary table prefix to use in underlying database. Various databases have different conventions, like &#8220;TEMP.&#8221; or &#8220;#&#8221;.</p>
+            </td></tr><tr><td>
+               <p>xdb.sqlcommand.createTempTable</p>
+               <p>.start</p>
+            </td><td>
+               <p>CREATE TABLE</p>
+            </td><td>
+               <p>Start of command for CREATE TABLE statement for creating temp table on the underlying database.</p>
+            </td></tr><tr><td>
+               <p>xdb.sqlcommand.createTempTable</p>
+               <p>.suffix</p>
+            </td><td>
+               <p>WITHOUT OIDS</p>
+            </td><td>
+               <p>Suffix to add at the end of CREATE statements for temp tables. </p>
+            </td></tr></tbody></table></div><p>
+       Note that Stado currently uses non-temporary tables in the temporary 
+       table implementation by default.
+     </p><p>
+       <span class="bold"><strong>Column Definitions</strong></span>
+     </p><p>
+       Columns may be of any of the data types listed in the data type chapter.
+       In addition, the user may specify whether or not nulls are allowed with 
+       <code class="literal">NULL</code> or <code class="literal">NOT NULL</code>, and include a 
+       <code class="literal">DEFAULT</code> clause to specify any default value for the 
+       column if none is specified as part of an insert. A column may also be 
+       designated as a primary key, or reference a foreign key.
+     </p><p>
+       <span class="bold"><strong>Constraint Definitions</strong></span>
+     </p><p>
+       The <code class="literal">CREATE TABLE</code> statement may also include primary 
+       key or foreign key constraint definitions.  Alternatively, these can 
+       also be specified as separate statements as part of <code class="literal">ALTER 
+       TABLE</code>. Please see <code class="literal">ALTER TABLE</code> for a more
+       detailed discussion about constraints.
+     </p><p>
+       <span class="bold"><strong>Xrowid</strong></span>
+     </p><p>
+       In previous versions of Stado, an internal row identifier was always 
+       created for each row to aid with distributed constraint checking. This 
+       is no longer required if you have a primary key or unique index on a 
+       table. If you do not use distributed constraints (e.g., a tuple in one
+       table references a tuple in another), you do not need to worry about a 
+       unique key for each row. For compatibility, one can still create 
+       <code class="literal">XROWID</code> by including the <code class="literal">WITH 
+       XROWID</code> clause. The implicit default is <code class="literal">WITHOUT 
+       XROWID</code>.
+     </p></div><div class="sect2" title="DROP TABLE"><div class="titlepage"><div><div><h3 class="title"><a name="drop_table"></a>DROP TABLE</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       DROP TABLE table_name [,table_name...]
+     </pre><p>
+       The <code class="literal">DROP TABLE</code> command is used to drop tables from
+       the database. 
+     </p><p>
+       If any foreign key constraints exist and other tables or views reference
+       a table being dropped, the <code class="literal">DROP</code> will not succeed. The
+       foreign key constraint from the other table must be dropped first.
+     </p></div><div class="sect2" title="TRUNCATE TABLE"><div class="titlepage"><div><div><h3 class="title"><a name="truc_table"></a>TRUNCATE TABLE</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       TRUNCATE table_name
+     </pre><p>
+       The <code class="literal">TRUNCATE</code> command effectively deletes all the rows
+       in a table. It is much faster than <code class="literal">DELETE</code> without any
+       <code class="literal">WHERE</code> condition since it will not scan the entire 
+       table.
+     </p></div><div class="sect2" title="ALTER TABLE &#8230; ADD COLUMN"><div class="titlepage"><div><div><h3 class="title"><a name="add_column"></a>ALTER TABLE &#8230; ADD COLUMN</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ALTER TABLE table_name 
+         ADD [COLUMN] create_definition
+     </pre><p>
+       This command is used to add columns to an existing table.
+     </p></div><div class="sect2" title="ALTER TABLE &#8230; DROP COLUMN"><div class="titlepage"><div><div><h3 class="title"><a name="drop_column"></a>ALTER TABLE &#8230; DROP COLUMN</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ALTER TABLE table_name 
+         DROP COLUMN column_name
+     </pre><p>
+       This command is used to drop a column from a table in the database.
+     </p></div><div class="sect2" title="ALTER TABLE &#8230; ADD PRIMARY KEY"><div class="titlepage"><div><div><h3 class="title"><a name="add_pk"></a>ALTER TABLE &#8230; ADD PRIMARY KEY</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ALTER TABLE table_name 
+         ADD PRIMARY KEY (column_name [,column_name...])
+     </pre><p>
+       A primary key may be added either as part of the <code class="literal">CREATE 
+       TABLE</code> statement, or as part of <code class="literal">ALTER 
+       TABLE</code>.
+     </p><p>
+       Stado will try and have constraints be enforced locally on the nodes 
+       if possible. That means, if the first column in the primary key is also
+       the partitioning column for a table, Stado will not enforce the primary
+       key itself, and will allow the underlying database to do it, since we 
+       know that no two rows with the same key can appear on different nodes. 
+       In addition, if the table is a lookup table and replicated to all nodes,
+       or it just appears on a single node, Stado will also leave it to the 
+       underlying database to be enforced.
+     </p><p>
+       If, however, the table is partitioned, and the first column in the 
+       primary key is not the partitioning column, Stado will enforce the 
+       primary key in case of <code class="literal">INSERT</code>s or 
+       <code class="literal">UPDATE</code>s. Distributed constraints like this are 
+       expensive to enforce, so if your database does a considerable amount of 
+       such write operations, you may not want to create any distributed 
+       constraints. If just doing periodic loads, it should not be an issue.
+     </p><p>
+       If a unique index already exists on the primary key columns, it will be 
+       used. Otherwise, the command is issued on the underlying nodes. 
+     </p></div><div class="sect2" title="ALTER TABLE &#8230; ADD FOREIGN KEY"><div class="titlepage"><div><div><h3 class="title"><a name="add_fk"></a>ALTER TABLE &#8230; ADD FOREIGN KEY</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ALTER TABLE table_name 
+         ADD [CONSTRAINT constraint_name] 
+         FOREIGN KEY  (column_name [, column_name...]) 
+         REFERENCES table_name (column_name [, column_name&#8230; ])
+     </pre><p>
+       Foreign key constraints may be added by either the <code class="literal">CREATE 
+       TABLE</code> or <code class="literal">ALTER TABLE</code> command.
+     </p><p>
+       Foreign keys help to guarantee referential integrity in your database. 
+       The referring table&#8217;s corresponding values must exist as a primary key
+       or unique index in the referenced table.
+     </p><p>
+       Stado will try and have constraints be enforced locally on the nodes if
+       possible. If we are referencing a replicated lookup table for example, 
+       Stado will leave it to the underlying nodes to enforce, and will create
+       a foreign key constraint on each node locally.
+     </p><p>
+       In addition, if the table is partitioned and we are referencing another 
+       partitioned table, if the first column in the referenced and referring 
+       key in each of the tables is also the partitioning key for each, we will
+       also rely on the underlying databases to enforce the constraint.
+     </p><p>
+       In other cases, local enforcement is not possible. In those cases, Stado
+       will provide enforcement of foreign keys for <code class="literal">INSERT</code>, 
+       <code class="literal">UPDATE</code> and <code class="literal">DELETE</code> operations, as a
+       distributed constraint.
+     </p><p>
+       Distributed constraints like this are expensive to enforce, so if your 
+       database does a considerable amount of such write operations, you may 
+       not want to create any distributed constraints. If just doing periodic
+       loads, it should not be an issue.
+     </p></div><div class="sect2" title="ALTER TABLE &#8230; DROP CONSTRAINT"><div class="titlepage"><div><div><h3 class="title"><a name="drop_const"></a>ALTER TABLE &#8230; DROP CONSTRAINT</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ALTER TABLE table_name 
+         DROP CONSTRAINT constraint_name
+     </pre><p>
+       This command is used to drop an existing primary key or foreign key 
+       constraint. If the constraint had been created after an index on which 
+       it was based, only the constraint definition is dropped, and not the 
+       previously created index. If an internal index needed to be created for
+       the constraint, it will be dropped as well, however.
+     </p><p>
+       If no constraint name was specified at the time of its creation, the 
+       internally generated name may be determined by issuing a <code class="literal">SHOW
+       CONSTRAINTS</code> command. 
+     </p></div><div class="sect2" title="ALTER TABLE &#8230; DROP PRIMARY KEY"><div class="titlepage"><div><div><h3 class="title"><a name="drop_pk"></a>ALTER TABLE &#8230; DROP PRIMARY KEY</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ALTER TABLE table_name 
+         DROP PRIMARY KEY
+     </pre><p>
+       The <code class="literal">DROP PRIMARY KEY</code> clause of the <code class="literal">ALTER 
+       TABLE</code> command is used to remove the primary key for a table. 
+       If the primary key constraint was created after a unique index on which
+       it was based, the index will not be dropped.  If an internally generated
+       index was created, it will be dropped along with the primary key. 
+     </p></div><div class="sect2" title="ALTER TABLE &#8230; ALTER COLUMN"><div class="titlepage"><div><div><h3 class="title"><a name="alter_column"></a>ALTER TABLE &#8230; ALTER COLUMN</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ALTER [ COLUMN ] column TYPE type [ USING expression ]
+       ALTER [ COLUMN ] column SET DEFAULT expression
+       ALTER [ COLUMN ] column DROP DEFAULT
+       ALTER [ COLUMN ] column { SET | DROP } NOT NULL
+     </pre><p>
+       This command is used to modify the definition of a column, changing 
+       its type, its default, and whether or not in can be null. These can 
+       also be combined into a single <code class="literal">ALTER</code> command.
+     </p></div><div class="sect2" title="ALTER TABLE &#8230; OWNER"><div class="titlepage"><div><div><h3 class="title"><a name="owner"></a>ALTER TABLE &#8230; OWNER</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ALTER TABLE table OWNER TO new_owner
+     </pre><p>
+       This variant of <code class="literal">ALTER TABLE</code> is used modify the owner
+       of the table.
+     </p></div><div class="sect2" title="ALTER TABLE &#8230; SET TABLESPACE"><div class="titlepage"><div><div><h3 class="title"><a name="set_tablespace"></a>ALTER TABLE &#8230; SET TABLESPACE</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ALTER TABLE table_name SET TABLESPACE tablespace
+     </pre><p>
+       This variant of <code class="literal">ALTER TABLE</code> is used to move a table 
+       from one tablespace to another. More information about tablespaces can 
+       be found in the topic of <code class="literal">CREATE TABLESPACE</code>.
+     </p></div><div class="sect2" title="RENAME TABLE"><div class="titlepage"><div><div><h3 class="title"><a name="rename_table"></a>RENAME TABLE</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       RENAME TABLE table_name TO new_table_name
+     </pre><p>
+       This command allows the DBA or owner of a table to rename a table.
+     </p></div><div class="sect2" title="CREATE INDEX"><div class="titlepage"><div><div><h3 class="title"><a name="create_index"></a>CREATE INDEX</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       CREATE [UNIQUE] INDEX index_name 
+           ON table_name [USING index_type] 
+              (column_name [[ASC|DESC|operator_class],... )
+              [TABLESPACE tablespace]
+              [WHERE predicate]
+     </pre><p>
+       This command is used to create indexes for tables on the specified 
+       columns. The optional <code class="literal">TABLESPACE</code>  clause allows a 
+       tablespace to be specified.
+     </p><p>
+       If the <code class="literal">UNIQUE</code> modifier is specified, the set of 
+       values in the columns must be unique. If the table is partitioned and 
+       the first column in the index is the partitioning column, Stado will 
+       rely on the underlying nodes to enforce the unique index.  If that is 
+       not the case, Stado will enforce the unique index itself. Note that 
+       enforcing a unique distributed index will significantly slow down 
+       <code class="literal">INSERT</code> and <code class="literal">UPDATE</code> operations.
+     </p><p>
+       The <code class="literal">USING</code> clause allows for other types of indexes 
+       to be used, if the underlying database supports it. 
+     </p><p>
+       The <code class="literal">WHERE</code> predicate allows for the support of partial
+       indexes.
+     </p></div><div class="sect2" title="DROP INDEX"><div class="titlepage"><div><div><h3 class="title"><a name="drop_index"></a>DROP INDEX</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       DROP INDEX index_name [ON table_name]
+     </pre><p>
+       This command is used to drop indexes on tables. It can be executed by
+       the DBA or owner of the table.
+     </p></div><div class="sect2" title="CLUSTER"><div class="titlepage"><div><div><h3 class="title"><a name="cluster"></a>CLUSTER</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       CLUSTER index_name ON table_name
+       CLUSTER table_name
+       CLUSTER
+     </pre><p>
+       Clustering a table on an existing index causes the table to be reordered
+       based on the specified index, to allow for faster access. 
+     </p><p>
+       Note that when new rows are added to the table they will not be in 
+       clustered order. Issuing a <code class="literal">CLUSTER</code> command with just
+       the table_name parameter will recluster the table on the specified 
+       index. Issuing a <code class="literal">CLUSTER</code> command without any 
+       parameters will recluster all clustered tables.
+     </p><p>
+       As a practical matter, if your tables get quite large, this command may 
+       execute for a long time. Using <code class="literal">CLUSTER</code> may just be 
+       practical if you have a loading strategy where you create subtables (see
+       <code class="literal">CREATE TABLE</code>) based on a window of time of data, and 
+       where this data is fairly static. Then, you can 
+       <code class="literal">CLUSTER</code> the particular subtable just once and leave 
+       it alone after that.
+     </p></div><div class="sect2" title="CREATE VIEW"><div class="titlepage"><div><div><h3 class="title"><a name="create_view"></a>CREATE VIEW</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       CREATE VIEW view_name [(column1[,column&#8230;])] AS select_statement
+     </pre><p>
+       This statement allows views to be defined from one or more tables as 
+       <code class="literal">SELECT</code> statements.
+     </p><p>
+       Stado views are not updatable; one cannot update data in a view, or 
+       insert data into a view.
+     </p><p>
+       Views are not materialized, and are evaluated as part of a query at 
+       execution time.
+     </p></div><div class="sect2" title="DROP VIEW"><div class="titlepage"><div><div><h3 class="title"><a name="drop_view"></a> DROP VIEW</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       DROP VIEW view_name
+     </pre><p>
+       This statement is used to drop a view.
+     </p></div></div><div class="sect1" title="Data Manipulation Statements"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="dml"></a>Data Manipulation Statements</h2></div></div></div><div class="sect2" title="INSERT"><div class="titlepage"><div><div><h3 class="title"><a name="insert"></a>INSERT</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       INSERT [INTO] table_name [(column_name,...)]
+          VALUES ((expression),...)
+
+       INSERT [INTO] table_name [(column_name,...)]
+          SELECT ...
+     </pre><p>
+       The <code class="literal">INSERT</code> command is used to insert data into the
+       table.  There are two forms of the command, one for single row inserts, 
+       and one for multiple row inserts by taking the results of a 
+       <code class="literal">SELECT</code> statement.
+     </p><p>
+       If the table is replicated, inserted rows will be inserted into the 
+       replicated table on all nodes.
+     </p><p>
+       If the table is on a single node, the rows will just be inserted into
+       the table on that node.
+     </p><p>
+       If the table is partitioned, a hash value is calculated based on the 
+       partitioning column of the table, and the row to be inserted will be 
+       inserted at the appropriate target node. 
+     </p><p>
+       For the <code class="literal">INSERT</code> to succeed, no unique index, primary
+       key or referenced foreign key constraint violations may occur.
+     </p></div><div class="sect2" title="UPDATE"><div class="titlepage"><div><div><h3 class="title"><a name="update"></a>UPDATE</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       UPDATE table_name 
+          SET [table_name.]column_name1=expression1 
+           [, [table_name.]column_name2=expression2 ...]
+       [WHERE where_definition]
+     </pre><p>
+       The <code class="literal">UPDATE</code> command is used to update data within a
+       table. 
+     </p><p>
+       If a table is replicated, the table will be updated the same on all of
+       the nodes.
+     </p><p>
+       If the table is on a single node, the rows will just be update in the 
+       table on that node.
+     </p><p>
+       For the <code class="literal">UPDATE</code> to succeed, no unique index, primary 
+       key or referenced foreign key constraint violations may occur. 
+     </p><p>
+       If any distributed foreign key or primary key constraints exist, the 
+       execution of <code class="literal">UPDATE</code> may slow down considerably while 
+       these are checked cross-node. If the <code class="literal">UPDATE</code> affects 
+       the partitioning column of the table, the updated row may physically 
+       move from one node to another on the underlying database. 
+     </p></div><div class="sect2" title="DELETE"><div class="titlepage"><div><div><h3 class="title"><a name="delete"></a>DELETE</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       DELETE FROM table_name 
+         [WHERE where_definition]
+     </pre><p>
+       The <code class="literal">DELETE</code> command is used to delete data within a 
+       table. 
+     </p><p>
+       If a table is replicated, the rows from the table will be deleted in the
+       same manner on all of the nodes.
+     </p><p>
+       If the table is on a single node, the rows will just be deleted in the 
+       table on that node.
+     </p><p>
+       For the <code class="literal">DELETE</code> to succeed, no foreign key constraint
+       references to this table may be violated.
+     </p><p>
+       If any distributed foreign key references exist, the execution of 
+       <code class="literal">DELETE</code> may slow down considerably while these are 
+       checked cross-node.
+     </p></div><div class="sect2" title="SELECT"><div class="titlepage"><div><div><h3 class="title"><a name="select"></a>SELECT</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       SELECT [DISTINCT | UNIQUE | ALL]
+         select_expression,...
+         [INTO [ TEMPORARY | TEMP ] [ TABLE ] new_table]
+         [FROM table_references
+         [WHERE condition]
+         [GROUP BY {unsigned_integer | column_name | expression}...]
+         [HAVING where_definition]
+      [UNION select&#8230;...]
+         [ORDER BY {unsigned_integer | column_name | expression} [ASC | DESC] ,...]
+         [LIMIT n] [OFFSET m]
+
+      table_references may be
+      :
+      table_reference, table_reference
+      table_reference [CROSS] JOIN table_reference
+      table_reference [INNER] JOIN table_reference join_condition
+      table_reference NATURAL JOIN table_reference ON (column[,column_name...]) 
+      table_reference LEFT [OUTER] JOIN table_reference join_condition
+
+      Where table_reference is defined as: 
+
+      table_name [[AS] alias]  
+      and join_condition is defined as: 
+
+      ON conditional_expr | USING (column_list)
+
+      When using USING, column_list must be column names that exist in both tables.
+
+      WHERE condition_expr:
+
+      [NOT] condition_expr [ {AND | OR} condition_expr]
+
+      condition_expr:
+
+      expression operator [ANY|ALL] expression
+      expression [NOT] BETWEEN expression AND expression
+      expression [NOT] {IN|EXISTS} ({select_statement|expression_list})
+      [{table|alias].]column IS [NOT] NULL
+      [{table|alias].]column [NOT] {LIKE] } string
+     </pre><p>
+       An expression itself can be a string literal, mathematical expression, 
+       the result of a <code class="literal">SELECT</code>, etc. More information on 
+       expressions and operators can be found in the Expressions chapter 
+       earlier in this document. 
+     </p></div><div class="sect2" title="EXPLAIN"><div class="titlepage"><div><div><h3 class="title"><a name="explain"></a>EXPLAIN</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       EXPLAIN [VERBOSE] select_statement
+     </pre><p>
+       <code class="literal">EXPLAIN</code> is used to view the output of the execution 
+       plan for the specified <code class="literal">SELECT</code> statement. 
+     </p><p>
+       By default it will just display a summary. When the 
+       <code class="literal">VERBOSE</code> clause is included, more details including 
+       the node involvement are displayed.
+     </p></div></div><div class="sect1" title="Importing and Exporting via COPY"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="copy"></a>Importing and Exporting via COPY</h2></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       COPY tablename [ ( column [, ...] ) ]
+         FROM { 'filename' | STDIN }
+         [ [ WITH ] 
+           [ DELIMITER [ AS ] 'delimiter' ]
+           [ NULL [ AS ] 'null string' ]
+
+       COPY { tablename [ ( column [, ...] ) ] | ( query ) }
+         TO { 'filename' | STDOUT }
+         [ [ WITH ] 
+           [ DELIMITER [ AS ] 'delimiter' ]
+           [ NULL [ AS ] 'null string' ]
+     </pre><p>
+       Stado&#8217;s <code class="literal">COPY</code> command is similar to PostgreSQL&#8217;s 
+       command.
+     </p><p>
+       The first form, <code class="literal">COPY FROM</code>, is used for importing data
+       into a table from a file or <code class="literal">STDIN</code>. The second form, 
+       <code class="literal">COPY TO</code>, is used for exporting data from a table out 
+       to a file or <code class="literal">STDOUT</code>.
+     </p><p>
+       Note that you can also use the gs-loader utility for better error 
+       handling, which is described in the Import and Export Utilities guide.
+     </p></div><div class="sect1" title="Users and Privileges"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="users"></a>Users and Privileges</h2></div></div></div><p>
+       This section contains the SQL commands for creating and manipulating 
+       users and granting and revoking privileges.
+     </p><p>
+       A valid user must be specified when connecting to the Stado database. 
+       When a database is first created with createdb, the user is required to
+       assign a DBA username and password. 
+     </p><p>
+       A user must be granted access to a table before being able to access it.
+       By default, a user who creates a table has all privileges on that table.
+     </p><p>
+       There are 3 classes of users: DBA, RESOURCE, and STANDARD. DBA users 
+       have Database Administration privileges. RESOURCE users can create 
+       tables. STANDARD users cannot create tables, but can access the 
+       database. 
+     </p><div class="sect2" title="CREATE USER"><div class="titlepage"><div><div><h3 class="title"><a name="create_user"></a>CREATE USER</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       CREATE USER username PASSWORD password [user_class]
+         user_class = [DBA|RESOURCE|STANDARD]
+     </pre><p>
+       By default, user_class is RESOURCE. 
+     </p><p>
+       This command may only be executed by a DBA user.
+     </p><p>
+       STANDARD users may only access tables for which they have been granted 
+       permission (or via PUBLIC, of course). They may also create temp tables.
+     </p><p>
+       RESOURCE users are the same as STANDARD, only they also have the ability
+       to create tables.  
+     </p><p>
+       DBA users have all of the permissions of a RESOURCE user, but can 
+       additionally perform other tasks: starting and stopping a database, and
+       executing <code class="literal">ANALYZE</code>, <code class="literal">CREATE USER</code>, 
+       <code class="literal">DROP USER</code>, and <code class="literal">ALTER USER</code>. 
+     </p></div><div class="sect2" title="ALTER USER"><div class="titlepage"><div><div><h3 class="title"><a name="alter_user"></a>ALTER USER</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ALTER USER username PASSWORD password 
+       ALTER USER username user_class
+       ALTER USER username PASSWORD password user_class
+     </pre><p>
+       This command may only be executed by a DBA user, or by the same user 
+       wanting to change his or her own password.
+     </p><p>
+       A user cannot be demoted to the user class STANDARD if they own one or
+       more tables. In such a case, this will fail. The DBA should instead 
+       first either drop the tables or reassign ownership via <code class="literal">ALTER 
+       TABLE</code> using the <code class="literal">OWNER</code> clause. 
+     </p></div><div class="sect2" title="DROP USER"><div class="titlepage"><div><div><h3 class="title"><a name="drop_user"></a>DROP USER</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       DROP USER username
+     </pre><p>
+       This command may only be executed by a DBA user, and removes the user from the database.
+     </p></div><div class="sect2" title="GRANT"><div class="titlepage"><div><div><h3 class="title"><a name="grant"></a>GRANT</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       GRANT privilege_list ON [TABLE] table_list TO grantee_list
+             privilege_list ::= ALL | privilege[,privilege&#8230;] 
+             privilege ::= SELECT | INSERT | UPDATE | DELETE | 
+                       REFERENCES | INDEX | ALTER
+
+             table_list ::= * | table[,table&#8230;]
+ 
+             grantee_list ::= grantee[,grantee]
+             grantee ::= PUBLIC | user_name
+     </pre><p>
+       The <code class="literal">GRANT</code> command is used to grant privileges on a 
+       table, and may only be executed by a DBA user, or the owner of a table.
+     </p><p>
+       The privileges for <code class="literal">SELECT</code>, <code class="literal">INSERT</code>,
+       <code class="literal">UPDATE</code> and <code class="literal">DELETE</code> are for those 
+       respective commands. 
+     </p><p>
+       The <code class="literal">REFERENCES</code> privilege refers to the ability to 
+       create foreign key constraints, which requires 
+       <code class="literal">REFERENCES</code> privilege in both the referrer and referee
+       tables. 
+     </p><p>
+       The <code class="literal">INDEX</code> privilege allows the user to create and 
+       drop indexes.
+     </p><p>
+       The <code class="literal">ALTER</code> privilege allows the user to execute the 
+       <code class="literal">ALTER</code> table command. 
+     </p></div><div class="sect2" title="REVOKE"><div class="titlepage"><div><div><h3 class="title"><a name="revoke"></a>REVOKE</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       REVOKE privilege_list ON [TABLE] table_list FROM grantee_list
+
+       privilege_list ::= ALL | privilege[,privilege&#8230;] 
+       privilege ::= SELECT | INSERT | UPDATE | DELETE | 
+                          REFERENCES | INDEX | ALTER
+
+       table_list ::= * | *.* | table[,table&#8230;]
+ 
+       grantee_list ::= grantee[,grantee]
+       grantee ::= PUBLIC | user_name
+     </pre><p>
+       <code class="literal">REVOKE</code> is used to revoke privileges on a table.
+     </p><p>
+       Note that we only revoke what has previously been granted. If a table 
+       has been granted permission to PUBLIC, revoking for user1 will still 
+       allow user1 to access the table because the table is still accessible 
+       to the PUBLIC. 
+     </p></div></div><div class="sect1" title="Other Commands"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="other"></a>Other Commands</h2></div></div></div><p>
+     Stado also includes some administrative commands for administering the 
+     database and finding out information.
+   </p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Command</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>SHOW DATABASES</p>
+            </td><td>
+               <p>Lists all of the user-created Stado databases </p>
+            </td></tr><tr><td>
+               <p>SHOW TABLES</p>
+            </td><td>
+               <p>Lists all of the tables that exist in the current database</p>
+            </td></tr><tr><td>
+               <p>SHOW VIEWS</p>
+            </td><td>
+               <p>Lists all of the views that exist in the current database</p>
+            </td></tr><tr><td>
+               <p>DESCRIBE &lt;table&gt;</p>
+            </td><td>
+               <p>Lists the columns and their definitions of the specified table</p>
+            </td></tr><tr><td>
+               <p>DESCRIBE &lt;view&gt;</p>
+            </td><td>
+               <p>Displays the view definition for the specified view</p>
+            </td></tr><tr><td>
+               <p>SHOW INDEXES ON &lt;table&gt;</p>
+            </td><td>
+               <p>Lists all indexes for &lt;table&gt;</p>
+            </td></tr><tr><td>
+               <p>SHOW CONSTRAINTS ON &lt;table&gt;</p>
+            </td><td>
+               <p>Lists the following types of constraints for &lt;table&gt;: primary keys, foreign keys, foreign key references</p>
+            </td></tr><tr><td>
+               <p>SHOW USERS</p>
+            </td><td>
+               <p>Lists all defined users and their class</p>
+            </td></tr><tr><td>
+               <p>SHOW STATEMENTS</p>
+            </td><td>
+               <p>Lists all of the currently executing SQL statements</p>
+            </td></tr><tr><td>
+               <p>KILL &lt;request_id&gt;</p>
+            </td><td>
+               <p>Kills execution of the request id specified. Request ids can be obtained by executing the SHOW STATEMENTS command</p>
+            </td></tr><tr><td>
+               <p>ANALYZE</p>
+            </td><td>
+               <p>Updates the internal statistics in the database for creating better execution plans</p>
+            </td></tr><tr><td>
+               <p>VACUUM</p>
+            </td><td>
+               <p>Potentially frees up space in the database</p>
+            </td></tr><tr><td>
+               <p>EXECUTE DIRECT</p>
+            </td><td>
+               <p>Bypasses Stado and executes SQL commands on the underlying database directly.</p>
+            </td></tr></tbody></table></div><div class="sect2" title="SHOW DATABASES"><div class="titlepage"><div><div><h3 class="title"><a name="show_db"></a>SHOW DATABASES</h3></div></div></div><p>
+       Lists all of the user-created Stado databases. Columns:
+     </p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Column</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>Database</p>
+            </td><td>
+               <p>Database name</p>
+            </td></tr><tr><td>
+               <p>Status</p>
+            </td><td>
+               <p>The status of the database, can be either Started or Down.</p>
+            </td></tr><tr><td>
+               <p>Nodes</p>
+            </td><td>
+               <p>A comma separated list of all of the node id numbers that the database is on.</p>
+            </td></tr></tbody></table></div></div><div class="sect2" title="SHOW TABLES"><div class="titlepage"><div><div><h3 class="title"><a name="show_tables"></a>SHOW TABLES</h3></div></div></div><p>
+       Lists the columns and their definitions of the specified table.
+     </p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Column</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>Table_name</p>
+            </td><td>
+               <p>The name of the table</p>
+            </td></tr><tr><td>
+               <p>Table_partitioning_column</p>
+            </td><td>
+               <p>If the table is partitioned, the column used in partitioning, otherwise it is null for single-node or replicated tables.</p>
+            </td></tr><tr><td>
+               <p>Table_nodes</p>
+            </td><td>
+               <p>A comma separated list of all of the node id numbers that the table is on.</p>
+            </td></tr></tbody></table></div></div><div class="sect2" title="SHOW VIEWS"><div class="titlepage"><div><div><h3 class="title"><a name="show_views"></a>SHOW VIEWS</h3></div></div></div><p>Lists the views defined in the database.</p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Column</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>View_name</p>
+            </td><td>
+               <p>The name of the view</p>
+            </td></tr></tbody></table></div></div><div class="sect2" title="SHOW TABLE table"><div class="titlepage"><div><div><h3 class="title"><a name="show_table"></a>SHOW TABLE table</h3></div></div></div><p>Lists the columns and their definitions of the specified table.</p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Column</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>Column_name</p>
+            </td><td>
+               <p>The name of the column</p>
+            </td></tr><tr><td>
+               <p>Sql_data_type</p>
+            </td><td>
+               <p>Data type of column</p>
+            </td></tr><tr><td>
+               <p>Type_name</p>
+            </td><td>
+               <p>The data type name</p>
+            </td></tr><tr><td>
+               <p>Is_nullable</p>
+            </td><td>
+               <p>If YES, allows nulls, otherwise NO</p>
+            </td></tr><tr><td>
+               <p>Key</p>
+            </td><td>
+               <p>If when the table was defined, this single column was denoted as the primary key</p>
+            </td></tr><tr><td>
+               <p>Default</p>
+            </td><td>
+               <p>The default value of the column</p>
+            </td></tr></tbody></table></div></div><div class="sect2" title="SHOW VIEW view"><div class="titlepage"><div><div><h3 class="title"><a name="show_view"></a>SHOW VIEW view</h3></div></div></div><p>Displays the view definition and any named view columns.</p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Column</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>View_text</p>
+            </td><td>
+               <p>The text defining the view</p>
+            </td></tr><tr><td>
+               <p>View_column</p>
+            </td><td>
+               <p>The comma separated list of the column names defined by the creator of the view, if any.</p>
+            </td></tr></tbody></table></div></div><div class="sect2" title="SHOW INDEXES ON table"><div class="titlepage"><div><div><h3 class="title"><a name="show_indexes"></a>SHOW INDEXES ON table</h3></div></div></div><p>Lists all indexes for specified table.</p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Column</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>Indexname</p>
+            </td><td>
+               <p>The name of the index</p>
+            </td></tr><tr><td>
+               <p>Isunique</p>
+            </td><td>
+               <p>If YES, the index only allows unique values.</p>
+            </td></tr><tr><td>
+               <p>Columns</p>
+            </td><td>
+               <p>A comma-spearated list of the columns that make up the index.</p>
+            </td></tr></tbody></table></div></div><div class="sect2" title="SHOW CONSTRAINTS ON table"><div class="titlepage"><div><div><h3 class="title"><a name="show_constraints"></a>SHOW CONSTRAINTS ON table</h3></div></div></div><p>Lists all constraints for specified table, including primary keys, foreign keys, foreign key references.</p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Column</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>Constname</p>
+            </td><td>
+               <p>Constraint name</p>
+            </td></tr><tr><td>
+               <p>Type</p>
+            </td><td>
+               <p>The constraint type</p>
+            </td></tr><tr><td>
+               <p>Sourcetable</p>
+            </td><td>
+               <p>If a foreign key constraint, the referencing table</p>
+            </td></tr><tr><td>
+               <p>Sourcecolumns</p>
+            </td><td>
+               <p>If a foreign key constraint, the referencing columns</p>
+            </td></tr><tr><td>
+               <p>Desttable</p>
+            </td><td>
+               <p>If a foreign key constraint, the referenced table.</p>
+            </td></tr><tr><td>
+               <p>Destcolumns</p>
+            </td><td>
+               <p>If a foreign key constraint, the referenced columns.</p>
+            </td></tr></tbody></table></div></div><div class="sect2" title="SHOW USERS"><div class="titlepage"><div><div><h3 class="title"><a name="show_users"></a>SHOW USERS</h3></div></div></div><p>Lists all defined users.</p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Column</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>User_name</p>
+            </td><td>
+               <p>User name </p>
+            </td></tr><tr><td>
+               <p>User_class</p>
+            </td><td>
+               <p>Class of user</p>
+            </td></tr></tbody></table></div></div><div class="sect2" title="SHOW STATEMENTS"><div class="titlepage"><div><div><h3 class="title"><a name="show_statements"></a>SHOW STATEMENTS</h3></div></div></div><p>Shows all of the currently executing statements.</p><div class="informaltable"><table border="1"><colgroup><col><col></colgroup><tbody><tr><td>
+               <p><span class="bold"><strong>Column</strong></span></p>
+            </td><td>
+               <p><span class="bold"><strong>Description</strong></span></p>
+            </td></tr><tr><td>
+               <p>Request_id</p>
+            </td><td>
+               <p>The id of the request</p>
+            </td></tr><tr><td>
+               <p>Session_id</p>
+            </td><td>
+               <p>The session id number</p>
+            </td></tr><tr><td>
+               <p>Submit_time</p>
+            </td><td>
+               <p>The time at which the request was submitted</p>
+            </td></tr><tr><td>
+               <p>Status</p>
+            </td><td>
+               <p>P=processing, Q=queued</p>
+            </td></tr><tr><td>
+               <p>Statement</p>
+            </td><td>
+               <p>The actual request submitted</p>
+            </td></tr><tr><td>
+               <p>Nodes</p>
+            </td><td>
+               <p>For future use </p>
+            </td></tr><tr><td>
+               <p>Current_step</p>
+            </td><td>
+               <p>For future use</p>
+            </td></tr></tbody></table></div></div><div class="sect2" title="KILL"><div class="titlepage"><div><div><h3 class="title"><a name="kill"></a>KILL</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       KILL statement_number
+     </pre><p>
+       Kill is used to abort a currently executing or queued request. Kill is 
+       followed by the request id number, which can be determined from the 
+       <code class="literal">SHOW STATEMENTS</code> command.       
+     </p></div><div class="sect2" title="ANALYZE"><div class="titlepage"><div><div><h3 class="title"><a name="analyze"></a>ANALYZE</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       ANALYZE [ table [ (column [, ...] ) ] ]
+     </pre><p>
+       The <code class="literal">ANALYZE</code> command is a synonym for <code class="literal">UPDATE 
+       STATISTICS</code>. Both commands are supported to make administration
+       easier for DBAs accustomed to one or the other command from other DBMS 
+       systems.
+     </p><p>
+       <code class="literal">ANALYZE</code> updates internal statistics within node 
+       databases level as well as within Stado&#8217;s metadata database, to allow 
+       better query plans to be created when processing queries.
+     </p><p>
+       <code class="literal">ANALYZE</code> by itself will analyze all tables. If a table
+       name is included, it will analyze just the particular table. For finer 
+       granularity, individual column names may be specified as well.
+     </p><p>
+       See also: <code class="literal">VACUUM</code>.
+     </p></div><div class="sect2" title="VACUUM"><div class="titlepage"><div><div><h3 class="title"><a name="vacuum"></a>VACUUM</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       VACUUM [ FULL | FREEZE ] [ANALYZE] [ table [ (column [, ...] ) ]]
+     </pre><p>
+       The <code class="literal">VACUUM</code> command is used to clean up the database
+       internally, freeing up space due to deleted and updated rows. It is also
+       a good idea to run it periodically due to transaction id wrap-around (
+       more information can be found in the PostgreSQL documentation). 
+     </p><p>
+       It is a good idea to run the variant <code class="literal">VACUUM ANALYZE</code>, 
+       achieving both the results of <code class="literal">VACUUM</code> and 
+       <code class="literal">ANALYZE</code> at the same time.
+     </p><p>
+       <code class="literal">VACUUM</code> can optionally accept a single table name, 
+       as well as a subset of columns to update.
+     </p><p>
+       The <code class="literal">FULL</code> parameter does a more thorough 
+       <code class="literal">VACUUM</code>, which may free up more space, but it takes
+       longer to run.
+     </p><p>
+       <code class="literal">FREEZE</code> is used to mark tuples so that they will not 
+       be subject to the transaction id wrap-around issue. It is recommended to
+       read more about <code class="literal">FREEZE</code> in the PostgreSQL 
+       documentation before using.
+     </p><p>
+       See also: <code class="literal">ANALYZE</code>
+     </p></div><div class="sect2" title="EXECUTE DIRECT"><div class="titlepage"><div><div><h3 class="title"><a name="exec_direct"></a>EXECUTE DIRECT</h3></div></div></div><p>
+       Syntax:
+     </p><pre class="programlisting">
+       
+       EXEC[UTE] DIRECT ON [ALL | NODE[S] &lt;node_list&gt;]
+           '&lt;native_command&gt;'
+       
+     </pre><p>
+       The <code class="literal">EXECUTE DIRECT</code> command can be used to bypass 
+       Stado&#8217;s processing and execute a SQL statement directly on the specified
+       nodes. This can be useful for maintenance and troubleshooting. Instead 
+       of using Stado&#8217;s syntax, the user uses the native syntax of the 
+       underlying database. 
+     </p><p>
+       Please exercise caution when using <code class="literal">EXECUTE DIRECT</code>. If
+       you perform DDL commands like <code class="literal">CREATE TABLE</code>, Stado&#8217;s 
+       metadata database will not be updated and it will have no knowledge of 
+       the table.
+     </p><p>
+       If the command is a query, one ResultSet is returned from each of the 
+       nodes. The results are displayed in the order in which the node numbers
+       were listed. If <code class="literal">ALL</code> was specified, the results are 
+       returned in their natural order. 
+     </p><p>
+       If using the cmdline utility, the results from each node will be 
+       displayed one after another.
+     </p><p>
+       Example:
+     </p><pre class="programlisting">
+	EXECUTE DIRECT ON ALL &#8216;select count(*) from customer&#8217;;
+     </pre></div></div></div></div></body></html>
