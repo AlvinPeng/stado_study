@@ -22,6 +22,13 @@
  ****************************************************************************/
 package org.postgresql.stado.common;
 
+import org.postgresql.stado.common.util.ErrorCodes;
+import org.postgresql.stado.common.util.SQLErrorHandler;
+import org.postgresql.stado.common.util.SQLTypeConverter;
+import org.postgresql.stado.common.util.XLogger;
+import org.postgresql.stado.engine.datatypes.XData;
+import org.postgresql.stado.engine.io.ResultSetResponse;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -30,13 +37,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
-
-import org.postgresql.stado.common.util.ErrorCodes;
-import org.postgresql.stado.common.util.SQLErrorHandler;
-import org.postgresql.stado.common.util.SQLTypeConverter;
-import org.postgresql.stado.common.util.XLogger;
-import org.postgresql.stado.engine.datatypes.XData;
-import org.postgresql.stado.engine.io.ResultSetResponse;
 
 
 /**
@@ -3627,6 +3627,16 @@ public class ResultSetImpl implements java.sql.ResultSet {
             throws SQLException {
         // TODO Added for 1.6 compatibility
 
+    }
+
+    @Override
+    public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
+        throw new SQLException("Method is not implemented");
+    }
+
+    @Override
+    public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
+        throw new SQLException("Method is not implemented");
     }
 
     /**

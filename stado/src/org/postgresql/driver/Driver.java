@@ -22,21 +22,23 @@
  ****************************************************************************/
 package org.postgresql.driver;
 
-import java.io.*;
-import java.sql.*;
-import java.util.*;
-import java.net.URL;
-
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-
-
 import org.postgresql.driver.core.Logger;
 import org.postgresql.driver.util.GT;
 import org.postgresql.driver.util.PSQLDriverVersion;
 import org.postgresql.driver.util.PSQLException;
 import org.postgresql.driver.util.PSQLState;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.StringTokenizer;
 
 /**
  * The Java SQL framework allows for multiple database drivers.  Each
@@ -557,6 +559,11 @@ public class Driver implements java.sql.Driver
     public boolean jdbcCompliant()
     {
         return false;
+    }
+
+    @Override
+    public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
+        throw new SQLFeatureNotSupportedException("Method is not implemented");
     }
 
     static private String[] protocols = { "jdbc", "postgresql" };

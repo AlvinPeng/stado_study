@@ -22,13 +22,13 @@
  ****************************************************************************/
 package org.postgresql.stado.misc.combinedresultset;
 
+import org.postgresql.stado.common.XDBResultSetMetaData;
+import org.postgresql.stado.common.util.SQLTypeConverter;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.sql.*;
 import java.util.*;
-
-import org.postgresql.stado.common.XDBResultSetMetaData;
-import org.postgresql.stado.common.util.SQLTypeConverter;
 
 
 /**
@@ -1102,6 +1102,16 @@ public class ServerResultSetImpl implements java.sql.ResultSet, ServerResultSet 
             throws SQLException {
         // TODO Added for 1.6 compatibility
 
+    }
+
+    @Override
+    public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
+        throw new SQLException("Method is not implemented");
+    }
+
+    @Override
+    public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
+        throw new SQLException("Method is not implemented");
     }
 
     public void updateNClob(int columnIndex, Reader reader, long length)

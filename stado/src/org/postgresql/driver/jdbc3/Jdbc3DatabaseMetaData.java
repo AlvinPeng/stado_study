@@ -68,6 +68,16 @@ public class Jdbc3DatabaseMetaData extends org.postgresql.driver.jdbc3.AbstractJ
 	}
 
 	@Override
+	public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
+		throw new SQLException("Method is not implemented");
+	}
+
+	@Override
+	public boolean generatedKeyAlwaysReturned() throws SQLException {
+		throw new SQLException("Method is not implemented");
+	}
+
+	@Override
 	public ResultSet getFunctions(String catalog, String schemaPattern,
 			String functionNamePattern) throws SQLException {
 		// TODO Auto-generated method stub

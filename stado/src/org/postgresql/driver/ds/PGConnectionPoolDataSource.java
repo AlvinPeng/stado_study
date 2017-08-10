@@ -22,15 +22,17 @@
  ****************************************************************************/
 package org.postgresql.driver.ds;
 
+import org.postgresql.driver.ds.common.BaseDataSource;
+
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
-import java.sql.SQLException;
-import java.io.Serializable;
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
 import java.io.IOException;
-
-import org.postgresql.driver.ds.common.*;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.logging.Logger;
 
 /**
  * PostgreSQL implementation of ConnectionPoolDataSource.  The app server or
@@ -115,5 +117,10 @@ public class PGConnectionPoolDataSource extends BaseDataSource implements Serial
     {
         readBaseObject(in);
         defaultAutoCommit = in.readBoolean();
+    }
+
+    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+        throw new SQLFeatureNotSupportedException("Method is not implemented");
     }
 }

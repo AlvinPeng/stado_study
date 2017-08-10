@@ -38,19 +38,6 @@
  ****************************************************************************/
 package org.postgresql.stado.util;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Vector;
-
 import org.postgresql.stado.common.util.ParseCmdLine;
 import org.postgresql.stado.common.util.Property;
 import org.postgresql.stado.common.util.Props;
@@ -58,6 +45,14 @@ import org.postgresql.stado.exception.XDBServerException;
 import org.postgresql.stado.metadata.MetaData;
 import org.postgresql.stado.metadata.NodeDBConnectionInfo;
 import org.postgresql.stado.metadata.SysLogin;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.sql.*;
+import java.util.HashMap;
+import java.util.Vector;
 
 
 /**
@@ -147,6 +142,9 @@ public class CreateMdDb {
                     + " add foreign key (tableid) references xsystables (tableid)",
             "alter table xsystabparthash"
                     + " add foreign key (dbid, nodeid) references xsysdbnodes (dbid, nodeid)",
+            // Alvin Peng: add an index, so that XdbServer won't take much time to start up when there
+            //        are too many tables (there will be many rows in table xsystabparthash)
+            "create index idx_tabparthash_1 on xsystabparthash ( tableid )",
             "create table xsyscolumns (" + " colid serial,"
                     + " tableid int not null," + " colseq smallint not null,"
                     + " colname varchar(128) not null,"
@@ -375,11 +373,6 @@ public class CreateMdDb {
                 throw new XDBServerException(
                         "Could not connect to the database server", se2);
             }
-        }
-        if (connection == null) {
-            throw new XDBServerException(
-                    "Could not initialize connection.: Please check if the underlying"
-                            + "database is running on the System");
         }
 
         return connection;

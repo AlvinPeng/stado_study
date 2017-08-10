@@ -23,13 +23,16 @@
 package org.postgresql.driver.jdbc3;
 
 
+import org.postgresql.driver.core.BaseStatement;
+import org.postgresql.driver.core.Field;
+import org.postgresql.driver.core.Query;
+import org.postgresql.driver.core.ResultCursor;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.sql.*;
 import java.util.Map;
 import java.util.Vector;
-
-import org.postgresql.driver.core.*;
 
 /**
  * This class implements the java.sql.ResultSet interface for JDBC3.
@@ -327,6 +330,16 @@ public class Jdbc3ResultSet extends org.postgresql.driver.jdbc3.AbstractJdbc3Res
 			throws SQLException {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
+		throw new SQLException("Method is not implemented");
+	}
+
+	@Override
+	public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
+		throw new SQLException("Method is not implemented");
 	}
 
 	@Override

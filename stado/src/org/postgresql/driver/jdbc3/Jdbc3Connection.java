@@ -32,6 +32,7 @@ import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Struct;
+import java.util.concurrent.Executor;
 
 /**
  * This class implements the java.sql.Connection interface for JDBC3.
@@ -130,6 +131,31 @@ public class Jdbc3Connection extends org.postgresql.driver.jdbc3.AbstractJdbc3Co
 			throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public void setSchema(String schema) throws SQLException {
+		throw new SQLException("Method is not implemented");
+	}
+
+	@Override
+	public String getSchema() throws SQLException {
+		throw new SQLException("Method is not implemented");
+	}
+
+	@Override
+	public void abort(Executor executor) throws SQLException {
+		throw new SQLException("Method is not implemented");
+	}
+
+	@Override
+	public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+		throw new SQLException("Method is not implemented");
+	}
+
+	@Override
+	public int getNetworkTimeout() throws SQLException {
+		throw new SQLException("Method is not implemented");
 	}
 
 	@Override

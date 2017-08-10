@@ -22,10 +22,16 @@
  ****************************************************************************/
 package org.postgresql.driver.jdbc3;
 
-import java.sql.*;
-import java.util.Vector;
+import org.postgresql.driver.core.BaseConnection;
+import org.postgresql.driver.core.Field;
+import org.postgresql.driver.core.Query;
+import org.postgresql.driver.core.ResultCursor;
 
-import org.postgresql.driver.core.*;
+import java.sql.ParameterMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Vector;
 
 /**
  * This class implements the java.sql.Statement interface for JDBC3.
@@ -84,7 +90,17 @@ class Jdbc3Statement extends AbstractJdbc3Statement implements Statement
 		return false;
 	}
 
-	@Override
+    @Override
+    public void closeOnCompletion() throws SQLException {
+        throw new SQLException("Method is not implemented");
+    }
+
+    @Override
+    public boolean isCloseOnCompletion() throws SQLException {
+        throw new SQLException("Method is not implemented");
+    }
+
+    @Override
 	public void setPoolable(boolean poolable) throws SQLException {
 		// TODO Auto-generated method stub
 		

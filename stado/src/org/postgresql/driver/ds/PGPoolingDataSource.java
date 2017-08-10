@@ -23,6 +23,8 @@
 package org.postgresql.driver.ds;
 
 import javax.sql.DataSource;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.logging.Logger;
 
 /**
  * DataSource which uses connection pooling.  <font color="red">Don't use this if
@@ -62,4 +64,8 @@ public class PGPoolingDataSource
         dataSources.put(dataSourceName, this);
     }
 
+    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+        throw new SQLFeatureNotSupportedException("Method is not implemented");
+    }
 }

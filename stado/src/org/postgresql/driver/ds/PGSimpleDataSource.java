@@ -23,6 +23,8 @@
 package org.postgresql.driver.ds;
 
 import javax.sql.DataSource;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.logging.Logger;
 
 /**
  * Simple DataSource which does not perform connection pooling.  In order to use
@@ -36,4 +38,8 @@ public class PGSimpleDataSource
     extends org.postgresql.driver.ds.jdbc4.AbstractJdbc4SimpleDataSource
     implements DataSource
 {
+    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+        throw new SQLFeatureNotSupportedException("Method is not implemented");
+    }
 }

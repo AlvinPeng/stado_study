@@ -385,6 +385,16 @@ class Jdbc3CallableStatement extends Jdbc3PreparedStatement implements CallableS
 	}
 
 	@Override
+	public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
+		throw new SQLException("Method is not implemented");
+	}
+
+	@Override
+	public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
+		throw new SQLException("Method is not implemented");
+	}
+
+	@Override
 	public void setNClob(String parameterName, Reader reader, long length)
 			throws SQLException {
 		// TODO Auto-generated method stub
