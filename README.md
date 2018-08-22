@@ -2,3 +2,5 @@ Stado provides a powerful and flexible analytical environment allowing users to 
 
 This repository is for personal study of Stado.
 The official Stado repository can be found in: https://launchpad.net/stado
+
+最近在尝试翻译整理中文文档：https://pwj.gitbook.io/stado/ 欢迎感兴趣的朋友一起交流。
