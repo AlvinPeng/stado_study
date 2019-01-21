@@ -22,22 +22,18 @@
  ****************************************************************************/
 package org.postgresql.stado.communication;
 
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.Properties;
-
 import org.apache.log4j.Level;
 import org.postgresql.stado.common.util.Property;
 import org.postgresql.stado.common.util.XLogger;
 import org.postgresql.stado.communication.message.NodeMessage;
 import org.postgresql.stado.engine.CoordinatorPools;
 import org.postgresql.stado.exception.XDBServerException;
-import org.postgresql.stado.metadata.DBNode;
-import org.postgresql.stado.metadata.MetaData;
-import org.postgresql.stado.metadata.Node;
-import org.postgresql.stado.metadata.SysAgent;
-import org.postgresql.stado.metadata.SysDatabase;
+import org.postgresql.stado.metadata.*;
+
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.Properties;
 
 
 /**
@@ -70,7 +66,7 @@ public class CoordinatorAgent extends AbstractAgent {
      * is reused by all acting components of the central instance. Other side of
      * the channel is served by the NodeAgent
      *
-     * @see org.postgresql.stado.communication.NodeAgent.
+     * @see org.postgresql.stado.communication.NodeAgent
      */
     private AbstractConnector[] nodeConnectors;
 
